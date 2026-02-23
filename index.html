@@ -1,16 +1,68 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>My Website</title>
-    <!-- Optional: link a stylesheet -->
-    <!-- <link rel="stylesheet" href="styles.css"> -->
-  </head>
-  <body>
-    <!-- Empty body. Add your page content here. -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basic Website</title>
 
-    <!-- Optional: include a JS file -->
-    <!-- <script src="script.js" defer></script> -->
-  </body>
+  <!-- Describe your page — shows up in search results and browser tabs -->
+  <meta name="description" content="A short description of your page goes here.">
+
+  <!-- Your styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Keyboard users need to see where focus is */
+    :focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+
+    /* Respect users who prefer less motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 class="title">Basic Website</h1>
+  </header>
+
+  <nav aria-label="Primary">
+    <ul>
+      <li><a href="#" aria-current="page">Home</a></li>
+    </ul>
+  </nav>
+
+  <main id="main-content">
+    <div class="underline" aria-hidden="true"></div>
+    <p>Your content goes here.</p>
+    <button class="main-button" id="myButton" type="button">Button</button>
+  </main>
+
+  <footer>
+    <small>&copy; <span id="year"></span> Tomer Hirschauge</small>
+  </footer>
+
+  <script>
+    // Keep the copyright year current automatically
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const btn = document.getElementById('myButton');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        alert('Button clicked');
+      });
+    }
+  </script>
+
+  <!-- Your scripts -->
+  <script src="script.js"></script>
+
+</body>
 </html>

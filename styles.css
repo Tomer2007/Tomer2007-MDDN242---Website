@@ -1,0 +1,43 @@
+body {
+  margin: 0;
+  padding: 40px;
+  font-family: Arial, sans-serif;
+  background: #fcf8f6;
+}
+
+/* Title */
+.title {
+  color: #15267a;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* Light underline under the title */
+.underline {
+  width: 200px;
+  height: 2px;
+  background: #d7d7f5;
+  margin-bottom: 50px;
+}
+
+/* Centered button */
+.main-button {
+  display: block;
+  margin: 150px auto;
+  padding: 20px 80px;
+  background: #e0fdff;
+  border: 2px solid #c8eaff;
+  border-radius: 10px;
+  font-size: 18px;
+  color: #15267a;
+  cursor: pointer;
+
+  /* Smooth transition to hover state */
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Hover effect */
+.main-button:hover {
+  background: skyblue;        /* #87CEEB */
+  border-color: mediumPurple; /* #9370DB */
+}
