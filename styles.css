@@ -134,3 +134,10 @@ body {
   gap: 6px;
   align-items: center;
 }
+
+/* Visual state for toggle buttons (like Sprint) */
+.button-controls button[aria-pressed="true"],
+.button-controls button.active {
+  background: #ffd47a;
+  border: 2px solid #ffb347;
+}

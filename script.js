@@ -24,7 +24,16 @@ let currentX = getVar('--buttonX', 0);
 let currentY = getVar('--buttonY', 150);
 
 // Movement settings
-const speedPxPerSecond = 200; // movement speed when holding key (px/s)
+const baseSpeedPxPerSecond = 200; // base movement speed (px/s)
+const sprintSpeedMultiplier = 1.8; // how much faster when sprinting
+
+// Sprint state: keyboard hold vs on-screen toggle
+let sprintHeld = false;     // true while Shift is held
+let sprintToggled = false;  // true when on-screen Sprint button toggled on
+
+function isSprinting() {
+    return Boolean(sprintHeld || sprintToggled);
+}
 
 // Track which arrow keys are pressed
 const pressed = { left: false, right: false, up: false, down: false };
@@ -61,13 +70,25 @@ let frameIndex = 0;
 
 // Animation speed: number of sprite frames to show per second.
 // Change this value to adjust animation FPS (higher = faster animation).
-let animationFps = 4; // default 4 frames per second
+let animationFps = 4; // base animation fps (frames per second)
+const sprintFpsMultiplier = 1.35; // multiply FPS while sprinting (slightly faster)
 // Internal accumulator (ms) used to advance sprite frames based on real time
 let frameElapsedMs = 0;
 let lastDirection = 'right'; // 'left' or 'right'
 
 // Initialize player src if available
 if (player) player.src = frames[frameIndex];
+
+// On-screen sprint button
+const sprintBtn = document.getElementById('sprintBtn');
+if (sprintBtn) {
+    sprintBtn.addEventListener('click', () => {
+        sprintToggled = !sprintToggled;
+        sprintBtn.setAttribute('aria-pressed', String(Boolean(sprintToggled)));
+        sprintBtn.classList.toggle('active', Boolean(sprintToggled));
+        console.debug('Sprint toggled (button). sprintToggled=', sprintToggled);
+    });
+}
 
 function applyValues() {
     root.style.setProperty('--buttonX', `${Math.round(currentX)}px`);
@@ -195,6 +216,9 @@ document.addEventListener('keydown', (e) => {
 
     // Arrow keys start movement
     switch (e.key) {
+        // Sprint (hold Shift) — set sprintHeld while Shift is down
+        case 'Shift':
+            sprintHeld = true; console.debug('Shift pressed - sprintHeld=true'); break;
         case 'ArrowLeft': pressed.left = true; lastDirection = 'left'; e.preventDefault(); break;
         case 'ArrowRight': pressed.right = true; lastDirection = 'right'; e.preventDefault(); break;
         case 'ArrowUp': pressed.up = true; e.preventDefault(); break;
@@ -205,6 +229,10 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     console.debug('keyup:', e.key);
+    // Release Shift to stop sprinting
+    if (e.key === 'Shift') {
+        sprintHeld = false; console.debug('Shift released - sprintHeld=false');
+    }
     switch (e.key) {
         case 'ArrowLeft': pressed.left = false; break;
         case 'ArrowRight': pressed.right = false; break;
@@ -233,9 +261,12 @@ function loop(timestamp) {
             dx *= inv; dy *= inv;
         }
 
+    const speedMultiplier = isSprinting() ? sprintSpeedMultiplier : 1;
+        const effectiveSpeed = baseSpeedPxPerSecond * speedMultiplier;
+
         const prevX = currentX, prevY = currentY;
-        currentX = Math.max(0, currentX + dx * speedPxPerSecond * dt);
-        currentY = Math.max(0, currentY + dy * speedPxPerSecond * dt);
+        currentX = Math.max(0, currentX + dx * effectiveSpeed * dt);
+        currentY = Math.max(0, currentY + dy * effectiveSpeed * dt);
         applyValues();
         console.debug('moved dx,dy:', dx.toFixed(3), dy.toFixed(3), 'from', Math.round(prevX), Math.round(prevY), 'to', Math.round(currentX), Math.round(currentY));
     }
@@ -247,7 +278,7 @@ function loop(timestamp) {
         if (targetFrames !== frames) {
             frames = targetFrames;
             frameIndex = 0;
-            frameTick = 0;
+            frameElapsedMs = 0;
             player.src = frames[frameIndex];
         } else {
             // advance frames based on elapsed real time so animation is
@@ -256,7 +287,9 @@ function loop(timestamp) {
             // accumulate.
             const dtMs = dt * 1000;
             frameElapsedMs += dtMs;
-            const frameIntervalMs = 1000 / Math.max(1, animationFps);
+            // If sprinting, increase animation fps slightly so the walk looks faster
+            const effectiveFps = isSprinting() ? animationFps * sprintFpsMultiplier : animationFps;
+            const frameIntervalMs = 1000 / Math.max(1, effectiveFps);
             if (frameElapsedMs >= frameIntervalMs) {
                 // advance by how many intervals have passed (handles slow frames)
                 const steps = Math.floor(frameElapsedMs / frameIntervalMs);
