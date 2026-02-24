@@ -30,7 +30,7 @@
 <body>
 
   <header>
-    <h1 class="title">Basic Website</h1>
+    <h1 class="title">Tomer's Website</h1>
   </header>
 
   <nav aria-label="Primary">
@@ -42,7 +42,43 @@
   <main id="main-content">
     <div class="underline" aria-hidden="true"></div>
     <p>Your content goes here.</p>
-    <button class="main-button" id="myButton" type="button">Button</button>
+    <div id="arena" class="arena" aria-label="Play area">
+      <!-- Example squares (targets) placed absolutely inside the arena -->
+      <div class="game-square" id="square1" data-name="Square 1" style="left: 300px; top: 200px;"></div>
+      <div class="game-square" id="square2" data-name="Square 2" style="left: 800px; top: 600px;"></div>
+      <div class="game-square" id="square3" data-name="Square 3" style="left: 1400px; top: 300px;"></div>
+
+      <!-- The movable player sprite lives inside the arena so it can overlap squares -->
+      <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
+    </div>
+
+    <!-- Controls to move the button. These update CSS variables --buttonX and --buttonY -->
+    <div id="button-controls" class="button-controls" aria-label="Button position controls">
+      <fieldset>
+        <legend>Move button</legend>
+        <div>
+          <button type="button" id="upBtn" aria-label="Move up">▲</button>
+        </div>
+        <div>
+          <button type="button" id="leftBtn" aria-label="Move left">◀</button>
+          <button type="button" id="rightBtn" aria-label="Move right">▶</button>
+        </div>
+        <div>
+          <button type="button" id="downBtn" aria-label="Move down">▼</button>
+        </div>
+        <div style="margin-top:8px;">
+          <label for="xValue">X:</label>
+          <input id="xValue" type="number" step="1" aria-label="Button X position" />
+          <label for="yValue">Y:</label>
+          <input id="yValue" type="number" step="1" aria-label="Button Y position" />
+          <label for="stepSize">Step:</label>
+          <input id="stepSize" type="number" value="5" min="1" aria-label="Step size" />
+        </div>
+        <div style="margin-top:8px;">
+          <button type="button" id="actionBtn" aria-label="Action">Action (Space)</button>
+        </div>
+      </fieldset>
+    </div>
   </main>
 
   <footer>
@@ -52,13 +88,6 @@
   <script>
     // Keep the copyright year current automatically
     document.getElementById('year').textContent = new Date().getFullYear();
-
-    const btn = document.getElementById('myButton');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        alert('Button clicked');
-      });
-    }
   </script>
 
   <!-- Your scripts -->

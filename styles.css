@@ -1,8 +1,21 @@
+/* Editable button margin variables:
+   --buttonX: horizontal margin (left/right)
+   --buttonY: vertical margin (top/bottom)
+   Defaults set so the button is centered horizontally and spaced vertically.
+*/
+:root {
+  --buttonX: 1000px;
+  --buttonY: 150px;
+  --playerSize: 128px; /* default size for player sprite and its bounding box */
+  --playerFlip: 1; /* 1 = facing right, -1 = facing left */
+  --playerScale: 1; /* used for overlap scaling */
+}
+
 body {
   margin: 0;
   padding: 40px;
   font-family: Arial, sans-serif;
-  background: #fcf8f6;
+  background: #a096eb;
 }
 
 /* Title */
@@ -22,22 +35,102 @@ body {
 
 /* Centered button */
 .main-button {
-  display: block;
-  margin: 150px auto;
+  display: inline-block;  
+  /* Use CSS variables for horizontal (x) and vertical (y) margins.
+     --buttonX = horizontal (left/right)
+     --buttonY = vertical (top/bottom)
+     Example: to center horizontally and add 150px vertical spacing:
+       :root { --buttonX: auto; --buttonY: 150px; }
+  */
+  margin: var(--buttonY) var(--buttonX);    
   padding: 20px 80px;
-  background: #e0fdff;
-  border: 2px solid #c8eaff;
+  background: #ffc8a0;
+  border: 2px solid #ff9191;
   border-radius: 10px;
   font-size: 18px;
-  color: #15267a;
+  color: #540c0c;
   cursor: pointer;
 
   /* Smooth transition to hover state */
-  transition: background 0.25s ease, border-color 0.25s ease;
+  transition: background 2.5s ease, border-color 2.5s ease;
 }
 
 /* Hover effect */
 .main-button:hover {
-  background: skyblue;        /* #87CEEB */
-  border-color: mediumPurple; /* #9370DB */
+  background: rgb(198, 135, 235);        /* #87CEEB */
+  border-color: rgb(75, 21, 126); /* #9370DB */
+}
+
+/* Arena and squares for overlap/collision demo */
+.arena {
+  position: relative;
+  width: 2000px; /* large area so button can move and the page can scroll */
+  height: 1200px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));
+  border: 1px dashed rgba(0,0,0,0.06);
+  margin: 24px 0;
+}
+
+.game-square {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: #9bd3c2;
+  border: 3px solid #6bb59a;
+  border-radius: 8px;
+  transition: background 300ms ease, transform 200ms ease;
+}
+
+/* Visual feedback when the button overlaps a square */
+.game-square.highlight {
+  background: #ffd47a;
+  transform: scale(1.05);
+}
+
+/* Button visual change when overlapping any square */
+.main-button.overlap {
+  background: #ff6b6b !important;
+  border-color: #ff3b3b !important;
+  color: white !important;
+  transition: background 300ms ease, border-color 300ms ease, color 300ms ease;
+}
+
+/* Player sprite (replaces the moving button) */
+.player-sprite {
+  display: inline-block;
+  /* Position using the same CSS variables so movement code continues to work */
+  margin: var(--buttonY) var(--buttonX);
+  width: var(--playerSize);
+  height: auto;
+  max-width: none;
+  transition: transform 120ms linear, filter 120ms linear;
+  /* Compose flip and overlap scale using CSS variables so JS only sets vars */
+  transform: scaleX(var(--playerFlip)) scale(var(--playerScale));
+  will-change: transform;
+  /* Preserve crisp pixels when scaling pixel-art */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.player-sprite.overlap {
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+  /* increase the scale variable; transform combines flip and scale */
+  --playerScale: 1.02;
+}
+
+.button-controls {
+  margin-top: 12px;
+  position: fixed; /* fixed to viewport so it doesn't jump while holding */
+  z-index: 9999;
+  left: 50%;
+  bottom: 16px; /* default distance from bottom */
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.92);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
 }
