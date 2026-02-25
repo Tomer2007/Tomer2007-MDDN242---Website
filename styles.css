@@ -6,9 +6,11 @@
 :root {
   --buttonX: 1000px;
   --buttonY: 150px;
-  --playerSize: 128px; /* default size for player sprite and its bounding box */
+  --playerSize: 256px; /* default size for player sprite and its bounding box */
   --playerFlip: 1; /* 1 = facing right, -1 = facing left */
   --playerScale: 1; /* used for overlap scaling */
+  --dialogueFontFamily: Arial, sans-serif;
+  --dialogueFontSize: 32px;
 }
 
 body {
@@ -141,3 +143,28 @@ body {
   background: #ffd47a;
   border: 2px solid #ffb347;
 }
+
+/* Dialogue box that appears when interacting with a square */
+.dialogue-box {
+  display: inline-block; /* shrink to content */
+  background: white;
+  color: #111;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--dialogueFontFamily);
+  font-size: var(--dialogueFontSize);
+  line-height: 1.25;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+  /* allow the box to size to its content */
+  max-width: none;
+}
+.dialogue-body {
+  /* preserve newlines (we convert '/n' -> '\n') and DO NOT wrap lines
+     automatically - only break when the author inserted '/n'. */
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+/* Arrow pointers for left vs right anchored dialogue */
+/* No arrow pointer: keep the dialogue as a simple square box */

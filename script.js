@@ -27,6 +27,13 @@ let currentY = getVar('--buttonY', 150);
 const baseSpeedPxPerSecond = 200; // base movement speed (px/s)
 const sprintSpeedMultiplier = 1.8; // how much faster when sprinting
 
+// Follow-scroll thresholds (pixels). If a square is outside these
+// thresholds from the viewport center, the player would need to scroll
+// to reach it. We use these to auto-close dialogue when the square is
+// outside the player's movement bounds.
+const followThresholdX = 120;
+const followThresholdY = 120;
+
 // Sprint state: keyboard hold vs on-screen toggle
 let sprintHeld = false;     // true while Shift is held
 let sprintToggled = false;  // true when on-screen Sprint button toggled on
@@ -76,6 +83,98 @@ const sprintFpsMultiplier = 1.35; // multiply FPS while sprinting (slightly fast
 let frameElapsedMs = 0;
 let lastDirection = 'right'; // 'left' or 'right'
 
+// Dialogue configuration for each square. Replace the texts array to edit
+// the dialogue lines. Each entry supports two modes:
+// - mode: 'sequence' — returns texts in order; internal counter advances
+//   by 1 each interaction (counter is a float; Math.floor(counter) used)
+// - mode: 'random'   — returns a random entry; a `randomRange` [min,max]
+//   can be specified to control the random float range used internally.
+//
+// You can programmatically change a square's config at runtime using the
+// helper functions below: setDialogueMode, setDialogueCounter, setDialogueRandomRange.
+const dialogueConfig = {
+    square1: {
+        texts: [
+            'Hello — this is Square 1.',
+            'Hello — this is still Square 1.',
+            'Hello — this really is /n still Square 1.',
+            'Hello — this is Square 2.'
+        ],
+        mode: 'sequence',
+        counter: 0,
+        randomRange: [0, 2]
+    },
+    square2: {
+        texts: [
+            'Square 2 says: welcome /n to the demo!',
+            'Square 2 says: second line.'
+        ],
+        mode: 'random',
+        counter: 0,
+        randomRange: [0, 1]
+    },
+    square3: {
+        texts: [
+            'Square 3: This dialogue is /n easy to edit in the script.',
+            'Square 3: Another response.'
+        ],
+        mode: 'sequence',
+        counter: 0,
+        randomRange: [0, 1]
+    }
+};
+
+// Single DOM node we reuse for the dialogue box
+let dialogueNode = null;
+
+// Typewriter state (so we can cancel an ongoing reveal)
+let _typewriterHandle = null;
+let _typewriterCancelled = false;
+// characters per second for the typewriter effect (adjustable)
+let typewriterCps = 60; // 60 chars/sec -> ~16ms per char
+
+/**
+ * getNextDialogueText(id)
+ * - id: string (square id)
+ * Returns the next dialogue string for the square according to its
+ * configuration in `dialogueConfig`. For 'sequence' mode this will
+ * advance an internal counter (float) so you may set it directly via
+ * setDialogueCounter(id, value). For 'random' mode a random float in
+ * `randomRange` is chosen each time; the float is used to pick an index
+ * from the texts array.
+ */
+function getNextDialogueText(id) {
+    const cfg = dialogueConfig[id];
+    if (!cfg || !Array.isArray(cfg.texts) || cfg.texts.length === 0) {
+        return `You interacted with ${id}. (No dialogue configured)`;
+    }
+    const texts = cfg.texts;
+    if (cfg.mode === 'random') {
+        const range = Array.isArray(cfg.randomRange) && cfg.randomRange.length === 2 ? cfg.randomRange : [0, 1];
+        const min = Number(range[0]) || 0;
+        const max = Number(range[1]) || 1;
+        const r = Math.random() * (max - min) + min;
+        cfg._lastRandom = r;
+        // normalize r into [0,1) and pick an index
+        const normalized = (r - min) / ((max - min) || 1);
+        const idx = Math.floor(normalized * texts.length) % texts.length;
+        return texts[idx];
+    } else {
+        // sequence
+        const c = Number(cfg.counter) || 0;
+        const idx = Math.floor(c) % texts.length;
+        // advance counter by 1 for next time (float supported)
+        cfg.counter = c + 1;
+        return texts[idx];
+    }
+}
+
+// Helper API to change dialogue behavior from other scripts or the console
+function setDialogueMode(id, mode) { if (dialogueConfig[id]) dialogueConfig[id].mode = mode; }
+function setDialogueCounter(id, value) { if (dialogueConfig[id]) dialogueConfig[id].counter = Number(value) || 0; }
+function setDialogueRandomRange(id, min, max) { if (dialogueConfig[id]) dialogueConfig[id].randomRange = [Number(min) || 0, Number(max) || 1]; }
+function setDialogueTexts(id, textsArray) { if (dialogueConfig[id]) dialogueConfig[id].texts = Array.from(textsArray); }
+
 // Initialize player src if available
 if (player) player.src = frames[frameIndex];
 
@@ -103,9 +202,27 @@ let isOverlappingFlag = false;
 
 function isOverlapping(elA, elB) {
     if (!elA || !elB) return false;
+    // Use the visible bounding rect of each element as the authoritative
+    // interaction box. This keeps the interaction box the same size and
+    // centered as the visible square element.
     const a = elA.getBoundingClientRect();
     const b = elB.getBoundingClientRect();
-    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+
+    // Standard rectangle intersection test
+    const rectsIntersect = !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+
+    // Additionally consider the player's center inside the square, or the
+    // square's center inside the player's rect. This makes interaction
+    // robust when sprites have transparent padding or uneven shapes.
+    const playerCenterX = a.left + a.width / 2;
+    const playerCenterY = a.top + a.height / 2;
+    const playerCenterInsideSquare = (playerCenterX >= b.left && playerCenterX <= b.right && playerCenterY >= b.top && playerCenterY <= b.bottom);
+
+    const squareCenterX = b.left + b.width / 2;
+    const squareCenterY = b.top + b.height / 2;
+    const squareCenterInsidePlayer = (squareCenterX >= a.left && squareCenterX <= a.right && squareCenterY >= a.top && squareCenterY <= a.bottom);
+
+    return rectsIntersect || playerCenterInsideSquare || squareCenterInsidePlayer;
 }
 
 function updateOverlap() {
@@ -134,18 +251,205 @@ function updateOverlap() {
 // On-screen controls are fixed in the viewport (CSS). No JS positioning needed.
 
 function handleAction() {
-    if (currentOverlapSquare) {
-        const name = currentOverlapSquare.dataset.name || currentOverlapSquare.id || 'object';
-        console.debug('handleAction on', name);
-        alert(`Action on ${name}`);
+    // Prefer the overlap detected by the per-frame updater (this covers
+    // cases where updateOverlap already found the square), otherwise
+    // recompute immediately so action works the instant the key/button
+    // is pressed.
+    let target = currentOverlapSquare || null;
+    if (!target) {
+        const squares = Array.from(document.querySelectorAll('.game-square'));
+        for (const sq of squares) {
+            if (isOverlapping(player, sq)) { target = sq; break; }
+        }
+    }
+    if (target) {
+        const id = target.id || target.dataset.name || 'object';
+        console.debug('handleAction on', id);
+        showDialogueForSquare(target);
     } else {
-        // Optional: give feedback when no object is overlapped
-        // alert('No object to interact with');
+        // No overlapped object — optional feedback could go here.
     }
 }
 
 // Wire the on-screen action button
 actionBtn?.addEventListener('click', handleAction);
+
+// --- Dialogue UI helpers -------------------------------------------------
+function createDialogueNode() {
+    const d = document.createElement('div');
+    d.className = 'dialogue-box';
+
+    // Simple body only — the user asked for a minimal square that sizes
+    // to its text. We still provide a body element for easy replacement.
+    const body = document.createElement('div');
+    body.className = 'dialogue-body';
+    body.textContent = '';
+    d.appendChild(body);
+
+    // Start hidden so we can measure and then position. Use absolute so
+    // the dialogue is positioned in document coordinates and moves with
+    // the page (stays near the square when the page scrolls).
+    d.style.position = 'absolute';
+    d.style.left = '0px';
+    d.style.top = '0px';
+    d.style.visibility = 'hidden';
+    d.style.zIndex = 100000;
+
+    document.body.appendChild(d);
+    return d;
+}
+
+function hideDialogue() {
+    if (!dialogueNode) return;
+    // cancel any running typewriter
+    if (_typewriterHandle) {
+        clearTimeout(_typewriterHandle);
+        _typewriterHandle = null;
+    }
+    _typewriterCancelled = true;
+    dialogueNode.remove();
+    dialogueNode = null;
+}
+
+/**
+ * showDialogueForSquare(squareElement)
+ * - squareElement: the DOM node for the square the player interacted with
+ *
+ * Creates (or reuses) a small dialogue panel and positions it near the
+ * square's top-left or top-right corner depending on visibility. The
+ * content comes from `dialogueTexts[id]` and falls back to the square's
+ * data-name or id.
+ */
+function showDialogueForSquare(squareEl) {
+    if (!squareEl) return;
+    const rect = squareEl.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Create or reuse the dialogue node
+    if (!dialogueNode) dialogueNode = createDialogueNode();
+
+    const body = dialogueNode.querySelector('.dialogue-body');
+
+    const id = squareEl.id || squareEl.dataset.name || 'object';
+    // If the same square was already showing, toggle (close) instead
+    if (dialogueNode.dataset && dialogueNode.dataset.squareId === id) {
+        hideDialogue();
+        return;
+    }
+
+    let text = getNextDialogueText(id);
+    // Replace '/n' with an actual newline so authors can write '/n' for Enter
+    // in the in-code dialogue strings.
+    if (typeof text === 'string') {
+        text = text.replace(/\/n/g, '\n');
+    }
+
+    // For correct sizing we need to measure the dialogue box with the
+    // full text (so its width/height reflect the content). We'll set the
+    // body to the full text briefly to measure, then clear it and start
+    // the typewriter effect which will reveal the same text.
+    body.textContent = text;
+    // Force layout and measure after filling (we don't need the measured
+    // values here; measuring causes layout so later rectNode will be correct)
+    body.getBoundingClientRect();
+
+    // Now clear before starting the typewriter reveal
+    body.textContent = '';
+    // Start a cancellable typewriter reveal for the dialogue body.
+    startTypewriter(body, text, typewriterCps);
+    dialogueNode.dataset.squareId = id;
+
+    // Make the node hidden while we measure and position above the square
+    dialogueNode.style.visibility = 'hidden';
+    dialogueNode.classList.remove('anchor-top-left', 'anchor-top-right');
+    // Always use top-right anchor class for styling (even if we allow
+    // overflow) — kept for potential styling hooks.
+    dialogueNode.classList.add('anchor-top-right');
+
+    // We measured body previously; but the dialogueNode may have its own
+    // padding/border. Use getBoundingClientRect on the node now that the
+    // body's size is known to compute final placement.
+        const rectNode = dialogueNode.getBoundingClientRect();
+        const boxW = rectNode.width;
+        const boxH = rectNode.height;
+
+    // Compute target left/top so the dialog appears above the chosen corner
+    let left, top;
+    const padding = 8; // margin from viewport edges / square
+    const arrowGap = 6; // small gap between dialog and square
+    // Always anchor to the square's top-right corner irrespective of
+    // viewport visibility (per your request). This places the dialogue so
+    // its right edge aligns with the square's right edge and the box sits
+    // above the square.
+        left = rect.right - boxW;
+        // Place above the square so the square remains visible; do not clamp
+        // horizontally so the box can overflow the viewport if needed.
+        top = rect.top - boxH - arrowGap;
+
+    // Position in page coordinates so the dialogue sticks with the square
+    // when the page scrolls.
+    const pageLeft = Math.round(left + window.scrollX);
+    const pageTop = Math.round(top + window.scrollY);
+    dialogueNode.style.left = `${pageLeft}px`;
+    dialogueNode.style.top = `${pageTop}px`;
+    dialogueNode.style.visibility = 'visible';
+}
+
+// Close dialogue when user presses Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dialogueNode) hideDialogue();
+});
+
+// Helper: determine if a square is within the player's movement bounds
+// (i.e., the square's center is close enough to the viewport center that
+// the player could reach it without causing a scroll). Uses top-level
+// followThresholdX/followThresholdY constants.
+function isSquareWithinMovementBounds(squareEl) {
+    if (!squareEl) return false;
+    const r = squareEl.getBoundingClientRect();
+    const centerX = r.left + r.width / 2;
+    const centerY = r.top + r.height / 2;
+    const viewCenterX = window.innerWidth / 2;
+    const viewCenterY = window.innerHeight / 2;
+    return (Math.abs(centerX - viewCenterX) <= followThresholdX) && (Math.abs(centerY - viewCenterY) <= followThresholdY);
+}
+
+/**
+ * startTypewriter(targetElement, text, cps)
+ * - targetElement: element whose textContent will be filled
+ * - text: the full string to reveal
+ * - cps: characters-per-second speed
+ *
+ * Reveals `text` into targetElement one character at a time. Cancels any
+ * currently running typewriter so only one reveal runs at a time. The
+ * effect is cancellable by calling hideDialogue() which clears timers and
+ * sets a cancel flag.
+ */
+function startTypewriter(targetElement, text, cps = 60) {
+    // cancel previous
+    if (_typewriterHandle) { clearTimeout(_typewriterHandle); _typewriterHandle = null; }
+    _typewriterCancelled = false;
+    targetElement.textContent = '';
+    if (!text) return;
+    const delay = Math.max(4, Math.round(1000 / Math.max(1, cps))); // ms per char, min 4ms
+    let i = 0;
+
+    function step() {
+        if (_typewriterCancelled) return;
+        i += 1;
+        targetElement.textContent = text.slice(0, i);
+        if (i < text.length) {
+            _typewriterHandle = setTimeout(step, delay);
+        } else {
+            _typewriterHandle = null;
+        }
+    }
+
+    // kick off
+    _typewriterHandle = setTimeout(step, delay);
+}
+
 
 // (Space-action was merged into the unified keyboard handler below.)
 
@@ -317,9 +621,8 @@ function loop(timestamp) {
             const dxView = btnCenterX - viewCenterX; // positive = to the right
             const dyView = btnCenterY - viewCenterY; // positive = below center
 
-            // Thresholds in pixels before we start scrolling
-            const followThresholdX = 120;
-            const followThresholdY = 120;
+            // Thresholds in pixels before we start scrolling (use top-level constants)
+            // followThresholdX and followThresholdY are defined near the top.
 
             // Only scroll the amount beyond the threshold so the button doesn't
             // jump to the exact center; this keeps the motion smooth and predictable.
@@ -347,6 +650,18 @@ function loop(timestamp) {
 
     // Update overlap state each frame so visual feedback is immediate
     updateOverlap();
+    // Auto-close dialogue ONLY if the square left the player's movement bounds
+    // (i.e., outside the follow thresholds). We do not auto-close simply
+    // because overlap ended; the user asked to keep the dialogue until
+    // the square is outside the follow threshold.
+    if (dialogueNode && dialogueNode.dataset && dialogueNode.dataset.squareId) {
+        const shownId = dialogueNode.dataset.squareId;
+        const shownEl = document.getElementById(shownId);
+        // Only close when the square is outside movement bounds.
+        if (shownEl && !isSquareWithinMovementBounds(shownEl)) {
+            hideDialogue();
+        }
+    }
     // On-screen controls are fixed via CSS; no per-frame positioning required.
 
     requestAnimationFrame(loop);
