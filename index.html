@@ -10,6 +10,11 @@
 
   <!-- Your styles -->
   <link rel="stylesheet" href="styles.css">
+  <!-- Optional: paste a web-font stylesheet URL below to load a custom
+    font for dialogue boxes. Leave href empty to disable. Example:
+    https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap
+  -->
+  <link id="dialogue-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap">
 
   <style>
     /* Keyboard users need to see where focus is */
@@ -44,41 +49,31 @@
     <p>Your content goes here.</p>
     <div id="arena" class="arena" aria-label="Play area">
       <!-- Example squares (targets) placed absolutely inside the arena -->
-      <div class="game-square" id="square1" data-name="Square 1" style="left: 300px; top: 200px;"></div>
+      <div class="game-square" id="square1" data-name="Square 1" style="left: 1000px; top: 800px;"></div>
       <div class="game-square" id="square2" data-name="Square 2" style="left: 800px; top: 600px;"></div>
       <div class="game-square" id="square3" data-name="Square 3" style="left: 1400px; top: 300px;"></div>
-
+      <div class="game-square" id="square4" data-name="Square 4" style="left: 900px; top: 600px;"></div>
       <!-- The movable player sprite lives inside the arena so it can overlap squares -->
       <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
     </div>
 
-    <!-- Controls to move the button. These update CSS variables --buttonX and --buttonY -->
-    <div id="button-controls" class="button-controls" aria-label="Button position controls">
-      <fieldset>
-        <legend>Move button</legend>
-        <div>
-          <button type="button" id="upBtn" aria-label="Move up">▲</button>
+    <!-- Controls to move the player: responsive bottom-centred controls.
+         D-pad (arrows) is grouped in the red square; Sprint in blue circle;
+         Action/Interact in green circle. Buttons keep their existing IDs. -->
+    <div id="button-controls" class="button-controls" aria-label="On-screen controls">
+      <div class="controls-inner">
+        <div class="dpad" aria-hidden="false" role="group" aria-label="Directional pad">
+          <button type="button" id="upBtn" class="dpad-btn" aria-label="Move up">▲</button>
+          <button type="button" id="leftBtn" class="dpad-btn" aria-label="Move left">◀</button>
+          <button type="button" id="rightBtn" class="dpad-btn" aria-label="Move right">▶</button>
+          <button type="button" id="downBtn" class="dpad-btn" aria-label="Move down">▼</button>
         </div>
-        <div>
-          <button type="button" id="leftBtn" aria-label="Move left">◀</button>
-          <button type="button" id="rightBtn" aria-label="Move right">▶</button>
+
+        <div class="action-group" role="group" aria-label="Actions">
+          <button type="button" id="sprintBtn" class="action-btn sprint" aria-pressed="false" aria-label="Sprint">Sprint</button>
+          <button type="button" id="actionBtn" class="action-btn interact" aria-label="Action">Interact</button>
         </div>
-        <div>
-          <button type="button" id="downBtn" aria-label="Move down">▼</button>
-        </div>
-        <div style="margin-top:8px;">
-          <label for="xValue">X:</label>
-          <input id="xValue" type="number" step="1" aria-label="Button X position" />
-          <label for="yValue">Y:</label>
-          <input id="yValue" type="number" step="1" aria-label="Button Y position" />
-          <label for="stepSize">Step:</label>
-          <input id="stepSize" type="number" value="5" min="1" aria-label="Step size" />
-        </div>
-        <div style="margin-top:8px;">
-          <button type="button" id="actionBtn" aria-label="Action">Action (Space)</button>
-          <button type="button" id="sprintBtn" aria-pressed="false" aria-label="Sprint">Sprint</button>
-        </div>
-      </fieldset>
+      </div>
     </div>
   </main>
 

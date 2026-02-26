@@ -6,11 +6,12 @@
 :root {
   --buttonX: 1000px;
   --buttonY: 150px;
-  --playerSize: 256px; /* default size for player sprite and its bounding box */
+  --playerSize: 160px; /* default size for player sprite and its bounding box */
   --playerFlip: 1; /* 1 = facing right, -1 = facing left */
   --playerScale: 1; /* used for overlap scaling */
-  --dialogueFontFamily: Arial, sans-serif;
+  --dialogueFontFamily: arial, sans-serif;
   --dialogueFontSize: 32px;
+  --dialogueVerticalOffset: 14px; /* extra vertical gap above squares for dialogue */
 }
 
 body {
@@ -75,17 +76,21 @@ body {
 
 .game-square {
   position: absolute;
-  width: 120px;
-  height: 120px;
-  background: #9bd3c2;
-  border: 3px solid #6bb59a;
+  width: var(--playerSize);
+  height: var(--playerSize);
+  /* make the square invisible so only the sprite shows */
+  background: transparent;
+  border: none;
   border-radius: 8px;
   transition: background 300ms ease, transform 200ms ease;
+  overflow: hidden; /* contain npc sprite image */
 }
 
 /* Visual feedback when the button overlaps a square */
 .game-square.highlight {
-  background: #ffd47a;
+  /* visible highlight when player overlaps — use box-shadow so the
+     sprite remains visible and the square background is still hidden */
+  box-shadow: 0 0 0 6px rgba(255, 212, 122, 0.9);
   transform: scale(1.05);
 }
 
@@ -120,6 +125,19 @@ body {
   --playerScale: 1.02;
 }
 
+/* NPC sprite image inside each .game-square */
+.npc-sprite {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  /* Flip using custom CSS variable set by JS; also respect player scale */
+  transform-origin: center;
+  transform: scaleX(var(--npcFlip, 1)) scale(var(--playerScale, 1));
+}
+
 .button-controls {
   margin-top: 12px;
   position: fixed; /* fixed to viewport so it doesn't jump while holding */
@@ -127,13 +145,11 @@ body {
   left: 50%;
   bottom: 16px; /* default distance from bottom */
   transform: translateX(-50%);
-  background: rgba(255,255,255,0.92);
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+  background: transparent; /* keep background transparent to match design */
+  padding: 6px 8px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
   display: flex;
-  flex-direction: column;
-  gap: 6px;
   align-items: center;
 }
 
@@ -142,6 +158,83 @@ body {
 .button-controls button.active {
   background: #ffd47a;
   border: 2px solid #ffb347;
+}
+
+/* Controls inner layout */
+.controls-inner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  max-width: 90vw; /* never overflow viewport */
+}
+
+/* D-pad container (red square area) */
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--control-size));
+  grid-template-rows: repeat(2, var(--control-size));
+  gap: 8px;
+  padding: 10px;
+  background: rgba(220, 60, 60, 0.95); /* red square */
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* Size variable: responsive clamp */
+:root {
+  --control-size: clamp(44px, 7.5vw, 72px);
+}
+
+.dpad-btn {
+  width: var(--control-size);
+  height: var(--control-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border-radius: 6px;
+  border: none;
+  color: white;
+  background: rgba(120, 10, 10, 0.9);
+  cursor: pointer;
+}
+
+/* Place the arrows in the intended d-pad positions */
+.dpad-btn#upBtn { grid-column: 2; grid-row: 1; }
+.dpad-btn#leftBtn { grid-column: 1; grid-row: 2; }
+.dpad-btn#rightBtn { grid-column: 3; grid-row: 2; }
+.dpad-btn#downBtn { grid-column: 2; grid-row: 2; }
+
+/* Action group for Sprint (blue) and Interact (green) */
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.action-btn {
+  width: var(--control-size);
+  height: var(--control-size);
+  border-radius: 999px;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+}
+.action-btn.sprint { background: #4aa3ff; }
+.action-btn.interact { background: #37c957; }
+
+/* Responsive: if viewport is narrow, scale controls down and wrap */
+@media (max-width: 420px) {
+  .controls-inner { gap: 8px; }
+  .dpad { padding: 6px; gap: 6px; }
+  :root { --control-size: clamp(36px, 12vw, 56px); }
 }
 
 /* Dialogue box that appears when interacting with a square */

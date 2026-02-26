@@ -33,6 +33,10 @@ const sprintSpeedMultiplier = 1.8; // how much faster when sprinting
 // outside the player's movement bounds.
 const followThresholdX = 120;
 const followThresholdY = 120;
+// Dialogue boundary: a scale multiplier applied to the follow thresholds.
+// The dialogue will auto-close only when the square leaves this scaled
+// boundary. Change `dialogueBoundaryScale` to expand/contract this area.
+let dialogueBoundaryScale = 3.0; // 1.0 = same as follow thresholds
 
 // Sprint state: keyboard hold vs on-screen toggle
 let sprintHeld = false;     // true while Shift is held
@@ -96,7 +100,7 @@ const dialogueConfig = {
     square1: {
         texts: [
             'Hello — this is Square 1.',
-            'Hello — this is still Square 1.',
+            'Hello — this is still Square 1. /n {link:Google|https://google.com}',
             'Hello — this really is /n still Square 1.',
             'Hello — this is Square 2.'
         ],
@@ -121,6 +125,17 @@ const dialogueConfig = {
         mode: 'sequence',
         counter: 0,
         randomRange: [0, 1]
+    },
+    square4: {
+        texts: [
+            'Square 4: AAAAAAAAAAAGHHHHHHHHH!!!!!!',
+            'Square 4: AAAAAAAAAAAAAAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!!!!',
+            'Square 4: Aaaah.',
+            'Square 4: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHH!!!!!!!!!!!!!!!'
+        ],
+        mode: 'random',
+        counter: 0,
+        randomRange: [0, 3]
     }
 };
 
@@ -174,6 +189,24 @@ function setDialogueMode(id, mode) { if (dialogueConfig[id]) dialogueConfig[id].
 function setDialogueCounter(id, value) { if (dialogueConfig[id]) dialogueConfig[id].counter = Number(value) || 0; }
 function setDialogueRandomRange(id, min, max) { if (dialogueConfig[id]) dialogueConfig[id].randomRange = [Number(min) || 0, Number(max) || 1]; }
 function setDialogueTexts(id, textsArray) { if (dialogueConfig[id]) dialogueConfig[id].texts = Array.from(textsArray); }
+// Set a web font for dialogue text by URL (e.g. Google Fonts stylesheet)
+// and the font-family name to use. Example:
+// setDialogueFont('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap', '"Press Start 2P", monospace');
+function setDialogueFont(url, fontFamily) {
+    if (!url || !fontFamily) return;
+    // Insert a stylesheet link if not already present
+    const id = 'dialogue-font-' + btoa(url).replace(/=/g, '');
+    if (!document.getElementById(id)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.id = id;
+        document.head.appendChild(link);
+    }
+    // Apply the font family to the dialogue CSS variable
+    document.documentElement.style.setProperty('--dialogueFontFamily', fontFamily);
+    console.debug('Dialogue font set to', fontFamily, 'from', url);
+}
 
 // Initialize player src if available
 if (player) player.src = frames[frameIndex];
@@ -347,45 +380,99 @@ function showDialogueForSquare(squareEl) {
 
     // For correct sizing we need to measure the dialogue box with the
     // full text (so its width/height reflect the content). We'll set the
-    // body to the full text briefly to measure, then clear it and start
-    // the typewriter effect which will reveal the same text.
-    body.textContent = text;
-    // Force layout and measure after filling (we don't need the measured
-    // values here; measuring causes layout so later rectNode will be correct)
-    body.getBoundingClientRect();
+    // body to the full text briefly to measure.
+    // Support a simple link token syntax: {link:label|url}
+    // If present we render HTML (anchor opens in new tab) and skip the
+    // typewriter for that entry (keeps implementation simple).
+    const linkTokenRegex = /\{link:([^|}]+)\|([^}]+)\}/g;
+    const hasLinkToken = linkTokenRegex.test(text);
 
-    // Now clear before starting the typewriter reveal
-    body.textContent = '';
-    // Start a cancellable typewriter reveal for the dialogue body.
-    startTypewriter(body, text, typewriterCps);
-    dialogueNode.dataset.squareId = id;
+    // Fill the dialogue body with the full content first, then measure
+    // the dialogue node's final size so we can position it. For non-link
+    // entries we will clear the body and run the typewriter, but we'll
+    // keep the measured width/height for placement so the box doesn't
+    // jump when the body is emptied.
+    let boxW = 0, boxH = 0;
+    if (hasLinkToken) {
+        // Convert tokens to safe anchor HTML (developer-controlled strings).
+        const html = text.replace(linkTokenRegex, (m, label, href) => {
+            let safeHref = href.trim();
+            const safeLabel = label.trim();
+            // If the href looks like a bare domain (no scheme), default to https://
+            if (!/^([a-zA-Z][a-zA-Z0-9+.-]*:)?\/\//.test(safeHref) && !safeHref.startsWith('mailto:') && !safeHref.startsWith('/')) {
+                safeHref = 'https://' + safeHref;
+            }
+            return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+        });
+        body.innerHTML = html;
+        // Measure the fully-rendered dialogue node
+        dialogueNode.style.visibility = 'hidden';
+        const measured = dialogueNode.getBoundingClientRect();
+        boxW = measured.width;
+        boxH = measured.height;
+        // store measured size so we can reposition while typewriter runs
+        dialogueNode._boxW = boxW;
+        dialogueNode._boxH = boxH;
+        dialogueNode.dataset.squareId = id;
+        // pause this NPC while the player is interacting; they will remain
+        // paused until the player leaves their bounding box. Put them into
+        // the idle animation so they 'stand still' visually.
+        if (squareStates[id]) {
+            const s = squareStates[id];
+            s.interactedPaused = true;
+            s.state = 'idle';
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img) s.img.src = s.frames[s.frameIndex];
+        }
+    } else {
+        body.textContent = text;
+        // Measure the fully-rendered dialogue node while it contains the full text
+        dialogueNode.style.visibility = 'hidden';
+        const measured = dialogueNode.getBoundingClientRect();
+        boxW = measured.width;
+        boxH = measured.height;
+        // store measured size so we can reposition while typewriter runs
+        dialogueNode._boxW = boxW;
+        dialogueNode._boxH = boxH;
+        // Clear body and start the cancellable typewriter reveal
+        body.textContent = '';
+        startTypewriter(body, text, typewriterCps);
+        dialogueNode.dataset.squareId = id;
+        // pause this NPC while the player is interacting; they will remain
+        // paused until the player leaves their bounding box. Put them into
+        // the idle animation so they 'stand still' visually.
+        if (squareStates[id]) {
+            const s = squareStates[id];
+            s.interactedPaused = true;
+            s.state = 'idle';
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img) s.img.src = s.frames[s.frameIndex];
+        }
+    }
 
-    // Make the node hidden while we measure and position above the square
-    dialogueNode.style.visibility = 'hidden';
+    // Anchor class for styling hooks
     dialogueNode.classList.remove('anchor-top-left', 'anchor-top-right');
-    // Always use top-right anchor class for styling (even if we allow
-    // overflow) — kept for potential styling hooks.
     dialogueNode.classList.add('anchor-top-right');
-
-    // We measured body previously; but the dialogueNode may have its own
-    // padding/border. Use getBoundingClientRect on the node now that the
-    // body's size is known to compute final placement.
-        const rectNode = dialogueNode.getBoundingClientRect();
-        const boxW = rectNode.width;
-        const boxH = rectNode.height;
 
     // Compute target left/top so the dialog appears above the chosen corner
     let left, top;
     const padding = 8; // margin from viewport edges / square
-    const arrowGap = 6; // small gap between dialog and square
+    const arrowGap = 6; // small gap between dialog and square (base)
+    // Additional vertical offset (controlled by CSS var --dialogueVerticalOffset)
+    const vOffset = parsePx(getComputedStyle(root).getPropertyValue('--dialogueVerticalOffset')) || 12;
     // Always anchor to the square's top-right corner irrespective of
     // viewport visibility (per your request). This places the dialogue so
     // its right edge aligns with the square's right edge and the box sits
     // above the square.
-        left = rect.right - boxW;
-        // Place above the square so the square remains visible; do not clamp
-        // horizontally so the box can overflow the viewport if needed.
-        top = rect.top - boxH - arrowGap;
+    left = rect.right - boxW;
+    // Place above the square so the square remains visible; include an
+    // extra configurable vertical offset so dialogs sit a bit higher.
+    // Do not clamp horizontally so the box can overflow the viewport if needed.
+    top = rect.top - boxH - arrowGap - vOffset;
 
     // Position in page coordinates so the dialogue sticks with the square
     // when the page scrolls.
@@ -413,6 +500,187 @@ function isSquareWithinMovementBounds(squareEl) {
     const viewCenterX = window.innerWidth / 2;
     const viewCenterY = window.innerHeight / 2;
     return (Math.abs(centerX - viewCenterX) <= followThresholdX) && (Math.abs(centerY - viewCenterY) <= followThresholdY);
+}
+
+// Like isSquareWithinMovementBounds but uses the dialogueBoundaryScale so
+// the dialogue auto-close boundary can be adjusted separately from the
+// movement follow thresholds.
+function isSquareWithinDialogueBoundary(squareEl) {
+    if (!squareEl) return false;
+    const r = squareEl.getBoundingClientRect();
+    const centerX = r.left + r.width / 2;
+    const centerY = r.top + r.height / 2;
+    const viewCenterX = window.innerWidth / 2;
+    const viewCenterY = window.innerHeight / 2;
+    const effectiveX = followThresholdX * Number(dialogueBoundaryScale || 1);
+    const effectiveY = followThresholdY * Number(dialogueBoundaryScale || 1);
+    return (Math.abs(centerX - viewCenterX) <= effectiveX) && (Math.abs(centerY - viewCenterY) <= effectiveY);
+}
+
+function setDialogueBoundaryScale(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return;
+    dialogueBoundaryScale = n;
+    console.debug('dialogueBoundaryScale set to', dialogueBoundaryScale);
+}
+
+// --- Simple NPC square AI setup ---------------------------------------
+const arena = document.getElementById('arena');
+const squareEls = Array.from(document.querySelectorAll('.game-square'));
+const squareStates = {}; // keyed by element id
+
+function randRange(min, max) { return Math.random() * (max - min) + min; }
+
+// Initialize each square's state from its inline left/top or computed style
+for (const el of squareEls) {
+    const id = el.id || `sq-${Math.random().toString(36).slice(2,8)}`;
+    // starting position: prefer inline style then computed
+    let x = parsePx(el.style.left) || parsePx(getComputedStyle(el).left) || 0;
+    let y = parsePx(el.style.top) || parsePx(getComputedStyle(el).top) || 0;
+    // Create or reuse an <img> inside the square for pixelated sprite rendering
+    let img = el.querySelector('.npc-sprite');
+    if (!img) {
+        img = document.createElement('img');
+        img.className = 'npc-sprite';
+        img.alt = 'NPC';
+        // ensure the img doesn't intercept pointer events
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.display = 'block';
+        img.style.pointerEvents = 'none';
+        // preserve pixel-art crispness
+        img.style.imageRendering = 'pixelated';
+        el.appendChild(img);
+    }
+
+    // Sprite frame lists (uses the same naming pattern you requested)
+    const base = 'Assets/WebsiteNPC1';
+    const framesIdle = [`${base}Idle1.png.png`, `${base}Idle2.png.png`];
+    const framesWalk = [`${base}Walk1.png.png`, `${base}Walk2.png.png`];
+
+    // store as px relative to arena and attach animation state
+    squareStates[id] = {
+        el,
+        id,
+        x,
+        y,
+        state: 'idle', // 'idle' | 'walk'
+        timerMs: randRange(800, 2400), // initial idle between 0.8s and 2.4s
+        dirX: 0,
+        dirY: 0,
+        speed: randRange(20, 60), // px/s when walking
+        interactedPaused: false, // true after player interaction until they leave bounding box
+        // animation
+        framesIdle,
+        framesWalk,
+        frames: framesIdle,
+        frameIndex: 0,
+        frameElapsedMs: 0,
+        img,
+        lastDirection: 'right'
+    };
+    // initialize image src and ensure element uses left/top inline so updates apply
+    const s = squareStates[id];
+    img.src = s.frames[s.frameIndex];
+    // set initial flip variable so sprite faces right by default
+    img.style.setProperty('--npcFlip', 1);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+}
+
+
+function updateSquares(dt) {
+    if (!arena) return;
+    const maxX = Math.max(0, arena.clientWidth - 1);
+    const maxY = Math.max(0, arena.clientHeight - 1);
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        const el = s.el;
+        // If this square was interacted with and player still overlapping,
+        // keep it paused. Resume when player no longer overlaps.
+        if (s.interactedPaused) {
+            if (!isOverlapping(player, el)) {
+                s.interactedPaused = false;
+                // restart as idle with a short pause
+                s.state = 'idle';
+                s.timerMs = randRange(400, 1200);
+            } else {
+                // remain paused: ensure NPC shows idle frames but do not move
+                s.state = 'idle';
+                s.frames = s.framesIdle;
+                // fall through to animation update (do not perform movement)
+            }
+        }
+
+        s.timerMs -= dt * 1000;
+        if (s.timerMs <= 0) {
+            // toggle state
+            if (s.state === 'idle') {
+                s.state = 'walk';
+                s.timerMs = randRange(600, 2200);
+                // random direction unit vector
+                const ang = randRange(0, Math.PI * 2);
+                s.dirX = Math.cos(ang);
+                s.dirY = Math.sin(ang);
+                s.speed = randRange(20, 60);
+                // set facing direction based on horizontal component
+                if (s.dirX !== 0) s.lastDirection = s.dirX < 0 ? 'left' : 'right';
+                // switch to walk frames
+                s.frames = s.framesWalk;
+                s.frameIndex = 0;
+                s.frameElapsedMs = 0;
+                if (s.img) s.img.src = s.frames[s.frameIndex];
+            } else {
+                s.state = 'idle';
+                s.timerMs = randRange(800, 3000);
+                s.dirX = 0; s.dirY = 0;
+                // switch to idle frames
+                s.frames = s.framesIdle;
+                s.frameIndex = 0;
+                s.frameElapsedMs = 0;
+                if (s.img) s.img.src = s.frames[s.frameIndex];
+            }
+        }
+
+        if (s.state === 'walk') {
+            // move
+            const dx = s.dirX * s.speed * dt;
+            const dy = s.dirY * s.speed * dt;
+            let nx = s.x + dx;
+            let ny = s.y + dy;
+            // clamp and bounce off edges of the arena
+            const elW = el.offsetWidth || 0;
+            const elH = el.offsetHeight || 0;
+            const maxLeft = Math.max(0, arena.clientWidth - elW);
+            const maxTop = Math.max(0, arena.clientHeight - elH);
+            if (nx < 0) { nx = 0; s.dirX *= -1; }
+            if (ny < 0) { ny = 0; s.dirY *= -1; }
+            if (nx > maxLeft) { nx = maxLeft; s.dirX *= -1; }
+            if (ny > maxTop) { ny = maxTop; s.dirY *= -1; }
+            s.x = nx; s.y = ny;
+            el.style.left = `${Math.round(s.x)}px`;
+            el.style.top = `${Math.round(s.y)}px`;
+            // if horizontal movement is significant, update facing
+            if (Math.abs(s.dirX) > 0.05) s.lastDirection = s.dirX < 0 ? 'left' : 'right';
+        }
+        
+        // Advance NPC animation frames (idle or walk) based on global animationFps
+        if (s.frames && s.frames.length > 0 && s.img) {
+            s.frameElapsedMs += dt * 1000;
+            const frameIntervalMs = 1000 / Math.max(1, animationFps);
+            if (s.frameElapsedMs >= frameIntervalMs) {
+                const steps = Math.floor(s.frameElapsedMs / frameIntervalMs);
+                s.frameElapsedMs -= steps * frameIntervalMs;
+                s.frameIndex = (s.frameIndex + steps) % s.frames.length;
+                s.img.src = s.frames[s.frameIndex];
+            }
+        }
+        // Update flip based on lastDirection so NPC faces left/right like the player
+        if (s.img) {
+            const flipVal = (s.lastDirection === 'left') ? -1 : 1;
+            s.img.style.setProperty('--npcFlip', flipVal);
+        }
+    }
 }
 
 /**
@@ -575,6 +843,10 @@ function loop(timestamp) {
         console.debug('moved dx,dy:', dx.toFixed(3), dy.toFixed(3), 'from', Math.round(prevX), Math.round(prevY), 'to', Math.round(currentX), Math.round(currentY));
     }
 
+    // Update NPC squares movement before overlap detection so overlap uses
+    // the latest positions.
+    updateSquares(dt);
+
     // Sprite animation: switch between idle and walk frames and flip based on lastDirection
     if (player) {
         const moving = Boolean(pressed.left || pressed.right || pressed.up || pressed.down);
@@ -650,6 +922,27 @@ function loop(timestamp) {
 
     // Update overlap state each frame so visual feedback is immediate
     updateOverlap();
+    // If a dialogue is shown for a square, reposition it so the text follows
+    // the moving square. Use stored measured box size if available so we
+    // avoid measuring an empty body during typewriter reveals.
+    if (dialogueNode && dialogueNode.dataset && dialogueNode.dataset.squareId) {
+        const shownId = dialogueNode.dataset.squareId;
+        const shownEl = document.getElementById(shownId);
+        if (shownEl) {
+            const rect = shownEl.getBoundingClientRect();
+            const rectNode = dialogueNode.getBoundingClientRect();
+            const boxW = rectNode.width || dialogueNode._boxW || 0;
+            const boxH = rectNode.height || dialogueNode._boxH || 0;
+            const arrowGap = 6;
+            const vOffset = parsePx(getComputedStyle(root).getPropertyValue('--dialogueVerticalOffset')) || 12;
+            const left = rect.right - boxW;
+            const top = rect.top - boxH - arrowGap - vOffset;
+            const pageLeft = Math.round(left + window.scrollX);
+            const pageTop = Math.round(top + window.scrollY);
+            dialogueNode.style.left = `${pageLeft}px`;
+            dialogueNode.style.top = `${pageTop}px`;
+        }
+    }
     // Auto-close dialogue ONLY if the square left the player's movement bounds
     // (i.e., outside the follow thresholds). We do not auto-close simply
     // because overlap ended; the user asked to keep the dialogue until
@@ -657,8 +950,9 @@ function loop(timestamp) {
     if (dialogueNode && dialogueNode.dataset && dialogueNode.dataset.squareId) {
         const shownId = dialogueNode.dataset.squareId;
         const shownEl = document.getElementById(shownId);
-        // Only close when the square is outside movement bounds.
-        if (shownEl && !isSquareWithinMovementBounds(shownEl)) {
+        // Only close when the square is outside the dialogue boundary
+        // (which can be scaled independently of follow thresholds).
+        if (shownEl && !isSquareWithinDialogueBoundary(shownEl)) {
             hideDialogue();
         }
     }
@@ -672,3 +966,46 @@ requestAnimationFrame(loop);
 
 // Initialize UI with current CSS variable values
 applyValues();
+
+// If the head contains a <link id="dialogue-font-link"> with a Google
+// Fonts (or other) stylesheet href, parse the `family=` query params and
+// set the --dialogueFontFamily CSS variable so the dialogue boxes use
+// the loaded fonts. This lets the user only paste the stylesheet URL in
+// `index.html` and immediately have the dialogue change to that font.
+function applyDialogueLinkFontFromLink() {
+    const link = document.getElementById('dialogue-font-link');
+    if (!link) return;
+    const href = (link.getAttribute('href') || '').trim();
+    if (!href) return;
+    try {
+        const url = new URL(href, location.href);
+        const params = new URLSearchParams(url.search);
+        const families = [];
+        // Google Fonts uses repeated `family=` params; collect them all.
+        for (const v of params.getAll('family')) {
+            // Remove any after-colon weight/style suffix (e.g. `:wght@400;700`)
+            const name = String(v).split(':')[0].replace(/\+/g, ' ').trim();
+            if (name) families.push(`"${name}"`);
+        }
+        // Fallback if none found
+        const fontFamily = families.length ? families.join(', ') + ', sans-serif' : 'sans-serif';
+        document.documentElement.style.setProperty('--dialogueFontFamily', fontFamily);
+        console.debug('Applied dialogue font from link:', fontFamily, 'href=', href);
+    } catch (err) {
+        console.debug('Failed to parse dialogue font link href', err);
+    }
+}
+
+// Run once on load. Also watch for the link loading or attribute changes
+// so users can paste/change the href and see immediate effect.
+applyDialogueLinkFontFromLink();
+const _dialogueLinkEl = document.getElementById('dialogue-font-link');
+if (_dialogueLinkEl) {
+    _dialogueLinkEl.addEventListener('load', applyDialogueLinkFontFromLink);
+    const mo = new MutationObserver((muts) => {
+        for (const m of muts) {
+            if (m.type === 'attributes' && m.attributeName === 'href') applyDialogueLinkFontFromLink();
+        }
+    });
+    mo.observe(_dialogueLinkEl, { attributes: true });
+}
