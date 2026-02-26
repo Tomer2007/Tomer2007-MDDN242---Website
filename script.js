@@ -683,6 +683,35 @@ function updateSquares(dt) {
     }
 }
 
+// Depth sorting: set z-index based on element bottom Y coordinate so
+// entities lower on the screen appear above those higher up.
+function updateDepthSorting() {
+    const items = [];
+    if (player) {
+        const r = player.getBoundingClientRect();
+        items.push({ el: player, bottom: r.top + r.height });
+    }
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        if (!s || !s.el) continue;
+        const r = s.el.getBoundingClientRect();
+        items.push({ el: s.el, bottom: r.top + r.height });
+    }
+
+    // Sort ascending by bottom (top-most first). We'll assign increasing
+    // z-index so items with larger bottom (lower on screen) receive
+    // higher z-index and render on top.
+    items.sort((a, b) => a.bottom - b.bottom);
+    const base = 100; // keep dialogue and UI above this
+    for (let i = 0; i < items.length; i++) {
+        try {
+            items[i].el.style.zIndex = String(base + i);
+        } catch (err) {
+            // ignore
+        }
+    }
+}
+
 /**
  * startTypewriter(targetElement, text, cps)
  * - targetElement: element whose textContent will be filled
@@ -846,6 +875,8 @@ function loop(timestamp) {
     // Update NPC squares movement before overlap detection so overlap uses
     // the latest positions.
     updateSquares(dt);
+    // Depth-sort entities each frame so sprites overlap realistically
+    updateDepthSorting();
 
     // Sprite animation: switch between idle and walk frames and flip based on lastDirection
     if (player) {

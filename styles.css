@@ -107,6 +107,8 @@ body {
   display: inline-block;
   /* Position using the same CSS variables so movement code continues to work */
   margin: var(--buttonY) var(--buttonX);
+  /* Allow z-index stacking to work by making the player positioned */
+  position: relative;
   width: var(--playerSize);
   height: auto;
   max-width: none;
