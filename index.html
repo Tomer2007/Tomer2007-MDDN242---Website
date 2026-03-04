@@ -5,30 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Basic Website</title>
 
-  <!-- Describe your page — shows up in search results and browser tabs -->
   <meta name="description" content="A short description of your page goes here.">
 
-  <!-- Your styles -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Optional: paste a web-font stylesheet URL below to load a custom
-    font for dialogue boxes. Leave href empty to disable. Example:
-    https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap
-  -->
+
+  <!-- Optional: paste a Google Fonts stylesheet URL here to change the dialogue font.
+       Leave href empty to disable. -->
   <link id="dialogue-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap">
 
   <style>
-    /* Keyboard users need to see where focus is */
-    :focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
-
-    /* Respect users who prefer less motion */
+    :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
@@ -47,30 +35,141 @@
   <main id="main-content">
     <div class="underline" aria-hidden="true"></div>
     <p>Your content goes here.</p>
+
     <div id="arena" class="arena" aria-label="Play area">
-      <!-- Example squares (targets) placed absolutely inside the arena -->
-      <div class="game-square" id="square1" data-name="Square 1" style="left: 1000px; top: 800px;"></div>
-      <div class="game-square" id="square2" data-name="Square 2" style="left: 800px; top: 600px;"></div>
-      <div class="game-square" id="square3" data-name="Square 3" style="left: 1400px; top: 300px;"></div>
-      <div class="game-square" id="square4" data-name="Square 4" style="left: 900px; top: 600px;"></div>
-      <!-- The movable player sprite lives inside the arena so it can overlap squares -->
+
+      <!--
+        ================================================================
+          HOW TO ADD / CONFIGURE AN NPC
+        ================================================================
+
+        Copy one of the <div class="game-square"> blocks below and change
+        its data-* attributes. Every setting lives right here — you never
+        need to touch script.js to add a new NPC.
+
+        REQUIRED
+        ─────────────────────────────────────────────────────────────────
+        id                    Unique ID for this NPC. Keep it short.
+
+        POSITION
+        ─────────────────────────────────────────────────────────────────
+        data-x                Starting left position inside the arena (px).
+        data-y                Starting top  position inside the arena (px).
+
+        SPRITES
+        ─────────────────────────────────────────────────────────────────
+        data-idle-1           Path to idle frame 1  (relative to index.html)
+        data-idle-2           Path to idle frame 2
+        data-walk-1           Path to walk frame 1
+        data-walk-2           Path to walk frame 2
+
+        MOVEMENT
+        ─────────────────────────────────────────────────────────────────
+        data-can-move         "true"  → NPC wanders randomly around the arena.
+                              "false" → NPC stands still (use for signs,
+                                        items, or fixed characters).
+
+        DIALOGUE
+        ─────────────────────────────────────────────────────────────────
+        data-dialogue-mode    "sequence" → lines play in order, then loop.
+                              "random"   → a random line is picked each time.
+
+        data-dialogue         All dialogue lines written as ONE attribute.
+                              Separate individual lines with  |
+
+                              Special tokens you can use inside any line:
+                                /n
+                                  → line break (new line in the dialogue box)
+
+                                {link:Label|URL}
+                                  → a clickable hyperlink. Opens in a new tab.
+                                  Example: {link:My Portfolio|https://mysite.com}
+
+                                {img:path/to/image.png}
+                                  → places an image to the RIGHT of the text.
+                                  The dialogue box grows to fit it.
+                                  Tweak --dialogueImageSize in styles.css to
+                                  change how large the image appears.
+                                  Example: {img:Assets/preview.png}
+
+        FULL EXAMPLE
+        ─────────────────────────────────────────────────────────────────
+        <div class="game-square" id="guide"
+             data-x="500"  data-y="400"
+             data-idle-1="Assets/GuideIdle1.png.png"
+             data-idle-2="Assets/GuideIdle2.png.png"
+             data-walk-1="Assets/GuideWalk1.png.png"
+             data-walk-2="Assets/GuideWalk2.png.png"
+             data-can-move="true"
+             data-dialogue-mode="sequence"
+             data-dialogue="Hello traveller! | Check out my work! {img:Assets/preview.png} | See you around! /n Come back soon.">
+        </div>
+        ================================================================
+      -->
+
+      <!-- NPC 1 — wandering, sequence dialogue -->
+      <div class="game-square" id="square1"
+           data-x="1000" data-y="800"
+           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+           data-can-move="true"
+           data-dialogue-mode="sequence"
+           data-dialogue="Hello — this is Square 1. | Hello — still Square 1. /n {link:Google|https://google.com} | Hello — really still Square 1.">
+      </div>
+
+      <!-- NPC 2 — wandering, random dialogue -->
+      <div class="game-square" id="square2"
+           data-x="800" data-y="600"
+           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+           data-can-move="true"
+           data-dialogue-mode="random"
+           data-dialogue="Square 2 says: welcome /n to the demo! | Square 2 says: second line.">
+      </div>
+
+      <!-- NPC 3 — stationary, sequence dialogue with an image token -->
+      <div class="game-square" id="square3"
+           data-x="1400" data-y="300"
+           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+           data-can-move="false"
+           data-dialogue-mode="sequence"
+           data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/WebsiteNPC1Idle1.png.png|120} | Square 3: another response.">
+      </div>
+
+      <!-- NPC 4 — wandering, random dialogue -->
+      <div class="game-square" id="square4"
+           data-x="900" data-y="600"
+           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+           data-can-move="true"
+           data-dialogue-mode="random"
+           data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! | AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! | Aaaah. | AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
+      </div>
+
+      <!-- Player sprite — do not remove -->
       <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
     </div>
 
-    <!-- Controls to move the player: responsive bottom-centred controls.
-         D-pad (arrows) is grouped in the red square; Sprint in blue circle;
-         Action/Interact in green circle. Buttons keep their existing IDs. -->
+    <!-- On-screen controls -->
     <div id="button-controls" class="button-controls" aria-label="On-screen controls">
       <div class="controls-inner">
         <div class="dpad" aria-hidden="false" role="group" aria-label="Directional pad">
-          <button type="button" id="upBtn" class="dpad-btn" aria-label="Move up">▲</button>
-          <button type="button" id="leftBtn" class="dpad-btn" aria-label="Move left">◀</button>
+          <button type="button" id="upBtn"    class="dpad-btn" aria-label="Move up">▲</button>
+          <button type="button" id="leftBtn"  class="dpad-btn" aria-label="Move left">◀</button>
           <button type="button" id="rightBtn" class="dpad-btn" aria-label="Move right">▶</button>
-          <button type="button" id="downBtn" class="dpad-btn" aria-label="Move down">▼</button>
+          <button type="button" id="downBtn"  class="dpad-btn" aria-label="Move down">▼</button>
         </div>
-
         <div class="action-group" role="group" aria-label="Actions">
-          <button type="button" id="sprintBtn" class="action-btn sprint" aria-pressed="false" aria-label="Sprint">Sprint</button>
+          <button type="button" id="sprintBtn" class="action-btn sprint"   aria-pressed="false" aria-label="Sprint">Sprint</button>
           <button type="button" id="actionBtn" class="action-btn interact" aria-label="Action">Interact</button>
         </div>
       </div>
@@ -81,13 +180,7 @@
     <small>&copy; <span id="year"></span> Tomer Hirschauge</small>
   </footer>
 
-  <script>
-    // Keep the copyright year current automatically
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
-
-  <!-- Your scripts -->
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
   <script src="script.js"></script>
-
 </body>
 </html>
