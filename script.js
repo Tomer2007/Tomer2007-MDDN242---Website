@@ -32,8 +32,10 @@ const isMobile = window.innerWidth < 900;
 
 (function applyZoom() {
     const varName = isMobile ? '--zoom-mobile' : '--zoom-desktop';
-    const level   = getVar(varName, 1.0);
-    document.body.style.zoom = String(level);
+    const zoom    = getVar(varName, 1.0);
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.transform       = `scale(${zoom})`;
+    document.body.style.width           = `${100 / zoom}%`;
 })();
 
 // ---------------------------------------------------------------------------
@@ -125,7 +127,7 @@ for (const el of squareEls) {
     const diagMode = el.dataset.dialogueMode || 'sequence';
     // Dialogue lines are separated by  |  in the attribute
     const diagLines = (el.dataset.dialogue || '')
-        .split('|')
+        .split('||')
         .map(s => s.trim())
         .filter(Boolean);
 
@@ -275,9 +277,12 @@ function renderDialogueContent(rawText) {
 
     // Extract any {img:...} tokens — there may be more than one, but we
     // render all of them to the right of the text column.
-    const imgTokenRegex = /\{img:([^}]+)\}/g;
+    const imgTokenRegex = /\{img:([^|}]+)\|?(\d*)\}/g;
     const imgPaths = [];
-    text = text.replace(imgTokenRegex, (_m, path) => { imgPaths.push(path.trim()); return ''; }).trim();
+    text = text.replace(imgTokenRegex, (_m, path, size) => {
+        imgPaths.push({ src: path.trim(), size: parseInt(size, 10) || 100 });
+        return '';
+    }).trim();
 
     // Process {link:...} tokens — convert to anchor HTML fragments.
     const linkTokenRegex = /\{link:([^|}]+)\|([^}]+)\}/g;
@@ -310,9 +315,11 @@ function renderDialogueContent(rawText) {
 
     // Append image elements to the dialogue box (they go after the body div,
     // which puts them to the right thanks to the flex layout in CSS).
-    for (const path of imgPaths) {
+    for (const { src, size } of imgPaths) {
         const img = document.createElement('img');
-        img.src       = path;
+        img.src       = src;
+        img.style.width = `${size}px`;
+        img.style.height = 'auto';
         img.alt       = '';                    // decorative — no alt text needed
         img.className = 'dialogue-img';
         dialogueNode.appendChild(img);
@@ -591,6 +598,54 @@ document.addEventListener('keyup', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+//  Controls position
+//
+//  CONTROLS_OFFSET sets how far below/beside the player the buttons appear.
+//  Positive Y = below the player. Positive X = right of centre.
+// ---------------------------------------------------------------------------
+
+const CONTROLS_OFFSET = {
+    desktop: { x: 700, y: 340 },
+    mobile:  { x: 0, y: 310 },
+};
+
+const controlsEl = document.getElementById('button-controls');
+
+// Page-coordinate position of the controls. Set once on load, then updated
+// only when the page scrolls — not when the player moves inside the follow zone.
+let controlsPageX = 0;
+let controlsPageY = 0;
+let prevScrollX   = window.scrollX;
+let prevScrollY   = window.scrollY;
+
+function initControlsPosition() {
+    if (!controlsEl) return;
+    const offset  = isMobile ? CONTROLS_OFFSET.mobile : CONTROLS_OFFSET.desktop;
+    controlsPageX = currentX + offset.x;
+    controlsPageY = currentY + offset.y;
+    const cW = controlsEl.offsetWidth || 200;
+    controlsEl.style.left      = `${Math.round(controlsPageX - cW / 2)}px`;
+    controlsEl.style.top       = `${Math.round(controlsPageY)}px`;
+    controlsEl.style.transform = 'none';
+}
+
+function updateControlsPosition() {
+    if (!controlsEl) return;
+    // Only move the controls by exactly how much the page scrolled this frame.
+    // Inside the follow zone there is no scroll, so the controls stay still.
+    const dScrollX = window.scrollX - prevScrollX;
+    const dScrollY = window.scrollY - prevScrollY;
+    prevScrollX = window.scrollX;
+    prevScrollY = window.scrollY;
+    if (dScrollX === 0 && dScrollY === 0) return;
+    controlsPageX += dScrollX;
+    controlsPageY += dScrollY;
+    const cW = controlsEl.offsetWidth || 200;
+    controlsEl.style.left = `${Math.round(controlsPageX - cW / 2)}px`;
+    controlsEl.style.top  = `${Math.round(controlsPageY)}px`;
+}
+
+// ---------------------------------------------------------------------------
 //  Camera — follow-scroll (original behaviour, now in its own function)
 // ---------------------------------------------------------------------------
 
@@ -698,6 +753,7 @@ function loop(timestamp) {
     updateDepthSorting();
     updateCamera();
     updateOverlap();
+    updateControlsPosition();
 
     // Track open dialogue and auto-close if the NPC wandered too far
     if (dialogueNode?.dataset.squareId) {
@@ -716,5 +772,8 @@ function loop(timestamp) {
 // ---------------------------------------------------------------------------
 
 applyValues();
-window.addEventListener('load', centerCameraOnPlayer);
+window.addEventListener('load', () => {
+    centerCameraOnPlayer();
+    initControlsPosition();
+});
 requestAnimationFrame(loop);

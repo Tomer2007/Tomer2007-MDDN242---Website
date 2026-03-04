@@ -9,7 +9,7 @@
      1.0 = normal size, 1.2 = 20% larger, 0.8 = 20% smaller, etc.
   */
   --zoom-desktop: 1.0;   /* zoom level on desktop / large screens */
-  --zoom-mobile:  10.0;   /* zoom level on mobile  / small screens  */
+  --zoom-mobile:  3.0;   /* zoom level on mobile  / small screens  */
 
   /* ── PLAYER / NPC SIZE ─────────────────────────────────────────────────────
      Shared size for the player sprite and all NPC bounding boxes.
@@ -30,9 +30,10 @@
   /* Internal — set by JS at runtime, not intended to be edited here */
   --playerFlip:  1;
   --playerScale: 1;
-  --buttonX:     1000px;
-  --buttonY:     150px;
-  --control-size: clamp(44px, 7.5vw, 72px);
+  
+  --buttonX:     100px; /* not buttons location but player */
+  --buttonY:     500px;
+  --control-size: clamp(60px, 7.5vw, 80px);
 }
 
 /* =============================================================================
@@ -138,12 +139,11 @@ body {
    ============================================================================= */
 
 .button-controls {
-  position: fixed;
+  position: absolute;
   z-index: 9999;
   left: 50%;
-  transform: translateX(-50%);
-  top: 60vh;
-  background: transparent;
+  top: 0;
+  transform: none;
   padding: 6px 8px;
   border-radius: 10px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.06);

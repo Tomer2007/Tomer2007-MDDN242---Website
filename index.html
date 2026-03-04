@@ -116,7 +116,7 @@
            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
            data-can-move="true"
            data-dialogue-mode="sequence"
-           data-dialogue="Hello — this is Square 1. | Hello — still Square 1. /n {link:Google|https://google.com} | Hello — really still Square 1.">
+           data-dialogue="Hello — this is Square 1. || Hello — still Square 1. /n {link:Google|https://google.com} || Hello — really still Square 1.">
       </div>
 
       <!-- NPC 2 — wandering, random dialogue -->
@@ -128,7 +128,7 @@
            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
            data-can-move="true"
            data-dialogue-mode="random"
-           data-dialogue="Square 2 says: welcome /n to the demo! | Square 2 says: second line.">
+           data-dialogue="Square 2 says: welcome /n to the demo! || Square 2 says: second line.">
       </div>
 
       <!-- NPC 3 — stationary, sequence dialogue with an image token -->
@@ -140,7 +140,7 @@
            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
            data-can-move="false"
            data-dialogue-mode="sequence"
-           data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/WebsiteNPC1Idle1.png.png|120} | Square 3: another response.">
+           data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/ButtonLayout.png|120} || Square 3: another response.">
       </div>
 
       <!-- NPC 4 — wandering, random dialogue -->
@@ -152,7 +152,7 @@
            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
            data-can-move="true"
            data-dialogue-mode="random"
-           data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! | AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! | Aaaah. | AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
+           data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! || AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
       </div>
 
       <!-- Player sprite — do not remove -->
@@ -163,14 +163,14 @@
     <div id="button-controls" class="button-controls" aria-label="On-screen controls">
       <div class="controls-inner">
         <div class="dpad" aria-hidden="false" role="group" aria-label="Directional pad">
-          <button type="button" id="upBtn"    class="dpad-btn" aria-label="Move up">▲</button>
-          <button type="button" id="leftBtn"  class="dpad-btn" aria-label="Move left">◀</button>
-          <button type="button" id="rightBtn" class="dpad-btn" aria-label="Move right">▶</button>
-          <button type="button" id="downBtn"  class="dpad-btn" aria-label="Move down">▼</button>
+          <button type="button" id="upBtn"    class="dpad-btn" aria-label="Move up"></button>
+          <button type="button" id="leftBtn"  class="dpad-btn" aria-label="Move left"></button>
+          <button type="button" id="rightBtn" class="dpad-btn" aria-label="Move right"></button>
+          <button type="button" id="downBtn"  class="dpad-btn" aria-label="Move down"></button>
         </div>
         <div class="action-group" role="group" aria-label="Actions">
-          <button type="button" id="sprintBtn" class="action-btn sprint"   aria-pressed="false" aria-label="Sprint">Sprint</button>
-          <button type="button" id="actionBtn" class="action-btn interact" aria-label="Action">Interact</button>
+          <button type="button" id="sprintBtn" class="action-btn sprint"   aria-pressed="false" aria-label="Sprint"></button>
+          <button type="button" id="actionBtn" class="action-btn interact" aria-label="Action"></button>
         </div>
       </div>
     </div>
