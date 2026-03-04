@@ -9,16 +9,16 @@
      1.0 = normal size, 1.2 = 20% larger, 0.8 = 20% smaller, etc.
   */
   --zoom-desktop: 1.0;   /* zoom level on desktop / large screens */
-  --zoom-mobile:  8.0;   /* zoom level on mobile  / small screens  */
+  --zoom-mobile:  1;   /* zoom level on mobile  / small screens  */
 
   /* ── PLAYER / NPC SIZE ─────────────────────────────────────────────────────
      Shared size for the player sprite and all NPC bounding boxes.
   */
-  --playerSize: 160px;
+  --playerSize: 80px;
 
   /* ── DIALOGUE ──────────────────────────────────────────────────────────────*/
   --dialogueFontFamily:     arial, sans-serif;
-  --dialogueFontSize:       32px;
+  --dialogueFontSize:       18px;
   --dialogueVerticalOffset: 14px;
 
   /* ── DIALOGUE IMAGE ────────────────────────────────────────────────────────
@@ -31,9 +31,13 @@
   --playerFlip:  1;
   --playerScale: 1;
   
-  --buttonX:     100px; /* not buttons location but player */
-  --buttonY:     500px;
-  --control-size: clamp(60px, 7.5vw, 80px);
+  --buttonX:     800px; /* not buttons location but player */
+  --buttonY:     800px;
+  /* if isMobile {
+     --control-size: clamp(60px, 7.5vw, 80px);
+  }
+  */
+  --control-size: clamp(15px, 7.5vw, 20px);
 }
 
 /* =============================================================================
@@ -135,94 +139,130 @@ body {
 }
 
 /* =============================================================================
-   ON-SCREEN CONTROLS
+   ON-SCREEN CONTROLS — sprite image with invisible hit areas
    ============================================================================= */
+
+/*  --ctrl-scale is the single scale variable for the entire controller UI.
+    Both the button sprite (200×120 native) and the TomeBoy frame (480×480
+    native) are driven by this one number — change only this to resize everything.
+    The TomeBoy width relative to the button sprite = 480/200 = 2.4, so the
+    TomeBoy display size = 200px * ctrl-scale * 2.4 = 480px * ctrl-scale * 1.0.
+    Simplified: tomeboy renders at  calc(480px * var(--ctrl-scale) / 2.4)
+    which equals calc(200px * var(--ctrl-scale)), the same unit as the button sprite width.
+    Both sprites therefore share the same pixel-per-unit scale.              */
+:root {
+  --ctrl-scale: 2.8;
+}
+
+/* =============================================================================
+   TOMEBOY FRAME — background sprite, z-layer between arena and buttons
+   ============================================================================= */
+
+.tomeboy-frame {
+  position: absolute;
+  z-index: 9000;        /* above arena content, below button hit areas (9999) */
+  left: -500;
+  top: -200;
+  pointer-events: none;
+}
+
+.tomeboy-sprite {
+  display: block;
+  /* 480px native, scaled by the same factor as the button sprite (200px native).
+     200 * ctrl-scale / 480 * 480 = 200 * ctrl-scale — same pixel density.   */
+  width:  calc(180px * var(--ctrl-scale) * 2.4);
+  height: calc(182px * var(--ctrl-scale) * 2.4);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
 
 .button-controls {
   position: absolute;
   z-index: 9999;
-  left: 50%;
+  left: 0;
   top: 0;
   transform: none;
-  padding: 6px 8px;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-}
-
-.button-controls button[aria-pressed="true"],
-.button-controls button.active {
-  background: #ffd47a;
-  border: 2px solid #ffb347;
-}
-
-.controls-inner {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  justify-content: center;
-  max-width: 90vw;
-}
-
-.dpad {
-  display: grid;
-  grid-template-columns: repeat(3, var(--control-size));
-  grid-template-rows:    repeat(2, var(--control-size));
-  gap: 8px;
-  padding: 10px;
-  background: rgba(220, 60, 60, 0.95);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-}
-
-.dpad-btn {
-  width: var(--control-size);
-  height: var(--control-size);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  border-radius: 6px;
+  /* no background / padding — the sprite provides the visual */
+  background: transparent;
   border: none;
-  color: white;
-  background: rgba(120, 10, 10, 0.9);
-  cursor: pointer;
+  box-shadow: none;
+  padding: 0;
+  display: block;
 }
 
-.dpad-btn#upBtn    { grid-column: 2; grid-row: 1; }
-.dpad-btn#leftBtn  { grid-column: 1; grid-row: 2; }
-.dpad-btn#rightBtn { grid-column: 3; grid-row: 2; }
-.dpad-btn#downBtn  { grid-column: 2; grid-row: 2; }
-
-.action-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
+/* Wrapper — sized exactly to the scaled sprite so hit areas line up */
+.controller-wrap {
+  position: relative;
+  width:  calc(150px * var(--ctrl-scale));
+  height: calc(90px  * var(--ctrl-scale));
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.action-btn {
-  width: var(--control-size);
-  height: var(--control-size);
-  border-radius: 999px;
+.controller-sprite {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none; /* clicks fall through to the buttons underneath */
+  draggable: false;
+}
+
+/* Base style for all invisible hit buttons */
+.ctrl-hit {
+  position: absolute;
+  background: transparent;
   border: none;
-  color: white;
-  font-weight: 600;
+  padding: 0;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  -webkit-tap-highlight-color: transparent;
+  /* Uncomment the line below to see hit zones while debugging: */
+  /* background: rgba(255,0,0,0.25); */
 }
-.action-btn.sprint   { background: #4aa3ff; }
-.action-btn.interact { background: #37c957; }
 
-@media (max-width: 420px) {
-  .controls-inner { gap: 8px; }
-  .dpad { padding: 6px; gap: 6px; }
-  :root { --control-size: clamp(36px, 12vw, 56px); }
+/*
+  D-pad hit areas.
+  The d-pad centre on the 160×96 sprite is approximately at (52, 48).
+  Each arm is ~12px wide and ~14px tall (before scaling).
+  We express positions as percentages of the wrapper so they scale with --ctrl-scale.
+
+  Sprite coords → percentage:
+    x%  = x / 160 * 100
+    y%  = y / 96  * 100
+    w%  = w / 160 * 100
+    h%  = h / 96  * 100
+
+  Up arm:    centre x≈52, top y≈22,  w≈16, h≈16  → left≈27.5%, top≈23%, w≈10%, h≈17%
+  Down arm:  centre x≈52, top y≈58,  w≈16, h≈16  → left≈27.5%, top≈60%, w≈10%, h≈17%
+  Left arm:  centre x≈30, top y≈40,  w≈16, h≈16  → left≈14%,   top≈42%, w≈13%, h≈17%
+  Right arm: centre x≈58, top y≈40,  w≈16, h≈16  → left≈43%,   top≈42%, w≈13%, h≈17%
+*/
+.dpad-hit.up    { left: 22%; top: 14%;  width: 15%; height: 27%; }
+.dpad-hit.down  { left: 22%; top: 60%;  width: 15%; height: 27%; }
+.dpad-hit.left  { left: 7%;   top: 37%;  width: 15%; height: 27%; }
+.dpad-hit.right { left: 36%;   top: 37%;  width: 15%; height: 27%; }
+
+/*
+  Action button hit areas.
+  A button: centre ≈ (122, 30) on 160×96  → left≈70%, top≈20%
+  B button: centre ≈ (136, 60) on 160×96  → left≈78%, top≈52%
+  Each button is ~16px diameter.
+*/
+.action-hit {
+  width: 16%;
+  height: 28%;
+  border-radius: 50%;
 }
+.action-hit.a-btn { left: 60%; top: 14%; }
+.action-hit.b-btn { left: 75%; top: 50%; }
+
+/* Visual feedback — brief highlight on press */
+.ctrl-hit:active { opacity: 0.5; }
+
+/* Sprint active state (toggled) */
+#sprintBtn[aria-pressed="true"] { opacity: 0.6; }
 
 /* =============================================================================
    DIALOGUE BOX

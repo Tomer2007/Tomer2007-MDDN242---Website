@@ -159,19 +159,26 @@
       <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
     </div>
 
-    <!-- On-screen controls -->
+    <!-- TomeBoy background frame — sits behind the button controls -->
+    <div id="tomeboy-frame" class="tomeboy-frame" aria-hidden="true">
+      <img src="Assets/WebsiteTomeBoySprite.png.png" class="tomeboy-sprite" alt="">
+    </div>
+
+    <!-- On-screen controls — sprite image with invisible hit areas overlaid -->
     <div id="button-controls" class="button-controls" aria-label="On-screen controls">
-      <div class="controls-inner">
-        <div class="dpad" aria-hidden="false" role="group" aria-label="Directional pad">
-          <button type="button" id="upBtn"    class="dpad-btn" aria-label="Move up"></button>
-          <button type="button" id="leftBtn"  class="dpad-btn" aria-label="Move left"></button>
-          <button type="button" id="rightBtn" class="dpad-btn" aria-label="Move right"></button>
-          <button type="button" id="downBtn"  class="dpad-btn" aria-label="Move down"></button>
-        </div>
-        <div class="action-group" role="group" aria-label="Actions">
-          <button type="button" id="sprintBtn" class="action-btn sprint"   aria-pressed="false" aria-label="Sprint"></button>
-          <button type="button" id="actionBtn" class="action-btn interact" aria-label="Action"></button>
-        </div>
+      <!-- The controller sprite. All hit buttons are positioned absolutely on top. -->
+      <div class="controller-wrap">
+        <img src="Assets/WebsiteGameBoyButton.png.png" class="controller-sprite" alt="Controller" draggable="false">
+
+        <!-- D-pad: four invisible buttons covering each arm of the cross -->
+        <button type="button" id="upBtn"    class="ctrl-hit dpad-hit up"    aria-label="Move up"></button>
+        <button type="button" id="leftBtn"  class="ctrl-hit dpad-hit left"  aria-label="Move left"></button>
+        <button type="button" id="rightBtn" class="ctrl-hit dpad-hit right" aria-label="Move right"></button>
+        <button type="button" id="downBtn"  class="ctrl-hit dpad-hit down"  aria-label="Move down"></button>
+
+        <!-- Action buttons -->
+        <button type="button" id="actionBtn" class="ctrl-hit action-hit a-btn" aria-label="Action"></button>
+        <button type="button" id="sprintBtn" class="ctrl-hit action-hit b-btn" aria-pressed="false" aria-label="Sprint"></button>
       </div>
     </div>
   </main>

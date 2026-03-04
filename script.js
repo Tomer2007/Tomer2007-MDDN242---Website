@@ -3,6 +3,10 @@
 //  Controls: Arrow keys / on-screen d-pad to move, Space / Interact to talk
 // =============================================================================
 
+// Disable the browser's built-in scroll restoration so it never overrides
+// our own scroll management on page load or reload.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
 const root = document.documentElement;
 
 // ---------------------------------------------------------------------------
@@ -48,8 +52,40 @@ let currentY = getVar('--buttonY', 150);
 const baseSpeedPxPerSecond  = 200;
 const sprintSpeedMultiplier = 1.8;
 
-const followThresholdX = isMobile ? 60 : 120;
-const followThresholdY = isMobile ? 80 : 120;
+// ---------------------------------------------------------------------------
+//  Follow boundary — derived from the TomeBoy sprite's screen size each frame.
+//
+//  SCREEN_REGION_X / SCREEN_REGION_Y — half-width/height of the play area
+//  as a fraction of the TomeBoy sprite's rendered size.
+//  Increase to give the player more room, decrease to scroll sooner.
+//
+//  SCREEN_REGION_OFFSET_X / SCREEN_REGION_OFFSET_Y — shift the centre of the
+//  follow region in pixels relative to the viewport centre.
+//  Negative Y moves the region UP (use this since the TomeBoy screen sits
+//  above the viewport centre). Positive X moves it right.
+// ---------------------------------------------------------------------------
+
+const SCREEN_REGION_X = 0.20;
+const SCREEN_REGION_Y = 0.18;
+
+const SCREEN_REGION_OFFSET_X =   0;    // px — shift region left(-) / right(+)
+const SCREEN_REGION_OFFSET_Y = -140;    // px — shift region up(-) / down(+)
+
+function getFollowThresholds() {
+    const el = document.getElementById('tomeboy-frame');
+    if (el) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+            return {
+                x:       r.width  * SCREEN_REGION_X,
+                y:       r.height * SCREEN_REGION_Y,
+                offsetX: SCREEN_REGION_OFFSET_X,
+                offsetY: SCREEN_REGION_OFFSET_Y,
+            };
+        }
+    }
+    return { x: 120, y: 120, offsetX: SCREEN_REGION_OFFSET_X, offsetY: SCREEN_REGION_OFFSET_Y };
+}
 
 let dialogueBoundaryScale = 3.0;
 
@@ -381,8 +417,9 @@ function isSquareWithinDialogueBoundary(squareEl) {
     if (!squareEl) return false;
     const r     = squareEl.getBoundingClientRect();
     const scale = Number(dialogueBoundaryScale) || 1;
-    return Math.abs((r.left + r.width  / 2) - window.innerWidth  / 2) <= followThresholdX * scale
-        && Math.abs((r.top  + r.height / 2) - window.innerHeight / 2) <= followThresholdY * scale;
+    const th    = getFollowThresholds();
+    return Math.abs((r.left + r.width  / 2) - (window.innerWidth  / 2 + th.offsetX)) <= th.x * scale
+        && Math.abs((r.top  + r.height / 2) - (window.innerHeight / 2 + th.offsetY)) <= th.y * scale;
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dialogueNode) hideDialogue(); });
@@ -598,51 +635,81 @@ document.addEventListener('keyup', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-//  Controls position
+//  Controls + TomeBoy frame positioning
 //
-//  CONTROLS_OFFSET sets how far below/beside the player the buttons appear.
-//  Positive Y = below the player. Positive X = right of centre.
+//  Both elements share one scale (--ctrl-scale) and the same scroll-delta
+//  system — they only move when the page scrolls.
+//
+//  getTomeboyOffset() calculates how far the TomeBoy frame sits above/left
+//  of the button sprite using native pixel measurements:
+//    Button sprite native size: 200×120px
+//    TomeBoy native size: 480×480px
+//    D-pad centre in TomeBoy: approx x=185, y=400
+//    D-pad centre in button sprite: approx x=60 (30%), y=60 (50%)
+//    → TomeBoy top-left = button top-left offset by -(125, 340) * scale
 // ---------------------------------------------------------------------------
 
-const CONTROLS_OFFSET = {
-    desktop: { x: 700, y: 340 },
-    mobile:  { x: 0, y: 910 },
+const CONTROLS_OFFSET = { 
+    desktop: { x: -30, y: -240 }, 
+    mobile:  { x: -200, y: -300 }, 
 };
 
 const controlsEl = document.getElementById('button-controls');
+const tomeboyEl  = document.getElementById('tomeboy-frame');
 
-// Page-coordinate position of the controls. Set once on load, then updated
-// only when the page scrolls — not when the player moves inside the follow zone.
 let controlsPageX = 0;
 let controlsPageY = 0;
 let prevScrollX   = window.scrollX;
 let prevScrollY   = window.scrollY;
 
+function getTomeboyOffset() {
+    const s = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
+    return { x: -Math.round(140 * s), y: -Math.round(320 * s) };
+}
+
 function initControlsPosition() {
     if (!controlsEl) return;
-    const offset  = isMobile ? CONTROLS_OFFSET.mobile : CONTROLS_OFFSET.desktop;
+    const offset    = isMobile ? CONTROLS_OFFSET.mobile : CONTROLS_OFFSET.desktop;
+    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
+    const cW        = controlsEl.offsetWidth || Math.round(200 * ctrlScale);
+
     controlsPageX = currentX + offset.x;
     controlsPageY = currentY + offset.y;
-    const cW = controlsEl.offsetWidth || 200;
+
     controlsEl.style.left      = `${Math.round(controlsPageX - cW / 2)}px`;
     controlsEl.style.top       = `${Math.round(controlsPageY)}px`;
     controlsEl.style.transform = 'none';
+
+    if (tomeboyEl) {
+        const tb = getTomeboyOffset();
+        tomeboyEl.style.left      = `${Math.round(controlsPageX - cW / 2 + tb.x)}px`;
+        tomeboyEl.style.top       = `${Math.round(controlsPageY + tb.y)}px`;
+        tomeboyEl.style.transform = 'none';
+    }
 }
 
 function updateControlsPosition() {
     if (!controlsEl) return;
-    // Only move the controls by exactly how much the page scrolled this frame.
-    // Inside the follow zone there is no scroll, so the controls stay still.
     const dScrollX = window.scrollX - prevScrollX;
     const dScrollY = window.scrollY - prevScrollY;
     prevScrollX = window.scrollX;
     prevScrollY = window.scrollY;
     if (dScrollX === 0 && dScrollY === 0) return;
+
     controlsPageX += dScrollX;
     controlsPageY += dScrollY;
-    const cW = controlsEl.offsetWidth || 200;
+
+    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
+    const cW        = controlsEl.offsetWidth || Math.round(200 * ctrlScale);
+    const tb        = getTomeboyOffset();
+
     controlsEl.style.left = `${Math.round(controlsPageX - cW / 2)}px`;
     controlsEl.style.top  = `${Math.round(controlsPageY)}px`;
+
+    if (tomeboyEl) {
+        tomeboyEl.style.left = `${Math.round(controlsPageX - cW / 2 + tb.x)}px`;
+        tomeboyEl.style.top  = `${Math.round(controlsPageY + tb.y)}px`;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -652,11 +719,12 @@ function updateControlsPosition() {
 function updateCamera() {
     if (!player) return;
     const rect   = player.getBoundingClientRect();
-    const dxView = (rect.left + rect.width  / 2) - window.innerWidth  / 2;
-    const dyView = (rect.top  + rect.height / 2) - window.innerHeight / 2;
+    const th     = getFollowThresholds();
+    const dxView = (rect.left + rect.width  / 2) - (window.innerWidth  / 2 + th.offsetX);
+    const dyView = (rect.top  + rect.height / 2) - (window.innerHeight / 2 + th.offsetY);
     let scrollDX = 0, scrollDY = 0;
-    if (Math.abs(dxView) > followThresholdX) scrollDX = (Math.abs(dxView) - followThresholdX) * Math.sign(dxView);
-    if (Math.abs(dyView) > followThresholdY) scrollDY = (Math.abs(dyView) - followThresholdY) * Math.sign(dyView);
+    if (Math.abs(dxView) > th.x) scrollDX = (Math.abs(dxView) - th.x) * Math.sign(dxView);
+    if (Math.abs(dyView) > th.y) scrollDY = (Math.abs(dyView) - th.y) * Math.sign(dyView);
     if (scrollDX !== 0 || scrollDY !== 0) {
         const doc = document.documentElement;
         window.scrollTo({
@@ -772,8 +840,18 @@ function loop(timestamp) {
 // ---------------------------------------------------------------------------
 
 applyValues();
+
+// Force scroll to (0,0) immediately — before layout settles — so the page
+// always starts from the same known position regardless of the browser
+// restoring the previous scroll. Then centerCameraOnPlayer scrolls to the
+// correct position, and initControlsPosition anchors from there.
+window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+
 window.addEventListener('load', () => {
+    // Reset scroll again after full load (some browsers restore it late).
+    window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
     centerCameraOnPlayer();
+    // Sync prevScroll to wherever centerCamera landed before init reads it.
     initControlsPosition();
 });
 requestAnimationFrame(loop);
