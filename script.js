@@ -606,7 +606,7 @@ document.addEventListener('keyup', (e) => {
 
 const CONTROLS_OFFSET = {
     desktop: { x: 700, y: 340 },
-    mobile:  { x: 0, y: 310 },
+    mobile:  { x: 0, y: 910 },
 };
 
 const controlsEl = document.getElementById('button-controls');

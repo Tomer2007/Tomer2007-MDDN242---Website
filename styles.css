@@ -9,7 +9,7 @@
      1.0 = normal size, 1.2 = 20% larger, 0.8 = 20% smaller, etc.
   */
   --zoom-desktop: 1.0;   /* zoom level on desktop / large screens */
-  --zoom-mobile:  3.0;   /* zoom level on mobile  / small screens  */
+  --zoom-mobile:  8.0;   /* zoom level on mobile  / small screens  */
 
   /* ── PLAYER / NPC SIZE ─────────────────────────────────────────────────────
      Shared size for the player sprite and all NPC bounding boxes.
