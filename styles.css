@@ -31,13 +31,16 @@
   --playerFlip:  1;
   --playerScale: 1;
   
-  --buttonX:     800px; /* not buttons location but player */
-  --buttonY:     800px;
+  --buttonX:     1600px; /* not buttons location but player */
+  --buttonY:     1600px;
   /* if isMobile {
      --control-size: clamp(60px, 7.5vw, 80px);
   }
   */
   --control-size: clamp(15px, 7.5vw, 20px);
+
+  --worldWidth:  1800px;
+  --worldHeight: 1800px;
 }
 
 /* =============================================================================
@@ -77,11 +80,29 @@ body {
 
 .arena {
   position: relative;
-  width: 2000px;
-  height: 1200px;
+  width: 16000px;
+  height: 16000px;
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));
   border: 1px dashed rgba(0,0,0,0.06);
   margin: 24px 0;
+}
+
+/* =============================================================================
+   WORLD MAP
+   ============================================================================= */
+
+.world-map {
+  position: absolute;
+  top: 600px;
+  left: 400px;
+
+  width:  var(--worldWidth);
+  height: var(--worldHeight);
+  object-fit: fill;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* =============================================================================
@@ -122,7 +143,7 @@ body {
 .player-sprite {
   display: inline-block;
   margin: var(--buttonY) var(--buttonX);
-  position: relative;
+  position: absolute;
   width: var(--playerSize);
   height: auto;
   max-width: none;
@@ -158,32 +179,30 @@ body {
    TOMEBOY FRAME — background sprite, z-layer between arena and buttons
    ============================================================================= */
 
-.tomeboy-frame {
-  position: absolute;
-  z-index: 9000;        /* above arena content, below button hit areas (9999) */
-  left: -500;
-  top: -200;
-  pointer-events: none;
-}
-
 .tomeboy-sprite {
   display: block;
-  /* 480px native, scaled by the same factor as the button sprite (200px native).
-     200 * ctrl-scale / 480 * 480 = 200 * ctrl-scale — same pixel density.   */
-  width:  calc(180px * var(--ctrl-scale) * 2.4);
-  height: calc(182px * var(--ctrl-scale) * 2.4);
+  /* Native sprite is 480×480. Scale it by ctrl-scale so it matches
+     the button sprite's pixel density. Width = height always (square). */
+  width:  calc(960px * var(--ctrl-scale) / 2);
+  height: calc(960px * var(--ctrl-scale) / 2);
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none;
 }
 
+.tomeboy-frame {
+  position: fixed;
+  z-index: 9000;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* Remove this — children need pointer events */
+}
+
 .button-controls {
-  position: absolute;
+  position: fixed;      /* was: absolute */
   z-index: 9999;
-  left: 0;
-  top: 0;
-  transform: none;
-  /* no background / padding — the sprite provides the visual */
+  pointer-events: all;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -191,11 +210,12 @@ body {
   display: block;
 }
 
+
 /* Wrapper — sized exactly to the scaled sprite so hit areas line up */
 .controller-wrap {
   position: relative;
-  width:  calc(150px * var(--ctrl-scale));
-  height: calc(90px  * var(--ctrl-scale));
+  width:  calc(160px * var(--ctrl-scale));
+  height: calc(100px  * var(--ctrl-scale));
   user-select: none;
   -webkit-user-select: none;
 }
@@ -207,7 +227,7 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none; /* clicks fall through to the buttons underneath */
-  draggable: false;
+ /* draggable: false;*/
 }
 
 /* Base style for all invisible hit buttons */

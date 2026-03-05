@@ -21,173 +21,207 @@
   </style>
 </head>
 <body>
+  <div id="zoom-root"> 
 
-  <header>
-    <h1 class="title">Tomer's Website</h1>
-  </header>
+    <header>
+      <h1 class="title">Tomer's Website</h1>
+    </header>
 
-  <nav aria-label="Primary">
-    <ul>
-      <li><a href="#" aria-current="page">Home</a></li>
-    </ul>
-  </nav>
+    <nav aria-label="Primary">
+      <ul>
+        <li><a href="#" aria-current="page">Home</a></li>
+      </ul>
+    </nav>
 
-  <main id="main-content">
-    <div class="underline" aria-hidden="true"></div>
-    <p>Your content goes here.</p>
+    <main id="main-content">
+      <div class="underline" aria-hidden="true"></div>
+      <p>Your content goes here.</p>
 
-    <div id="arena" class="arena" aria-label="Play area">
+      <div id="arena" class="arena" aria-label="Play area">
 
-      <!--
-        ================================================================
-          HOW TO ADD / CONFIGURE AN NPC
-        ================================================================
+        <!--
+          ================================================================
+            HOW TO ADD / CONFIGURE AN NPC
+          ================================================================
 
-        Copy one of the <div class="game-square"> blocks below and change
-        its data-* attributes. Every setting lives right here — you never
-        need to touch script.js to add a new NPC.
+          Copy one of the <div class="game-square"> blocks below and change
+          its data-* attributes. Every setting lives right here — you never
+          need to touch script.js to add a new NPC.
 
-        REQUIRED
-        ─────────────────────────────────────────────────────────────────
-        id                    Unique ID for this NPC. Keep it short.
+          REQUIRED
+          ─────────────────────────────────────────────────────────────────
+          id                    Unique ID for this NPC. Keep it short.
 
-        POSITION
-        ─────────────────────────────────────────────────────────────────
-        data-x                Starting left position inside the arena (px).
-        data-y                Starting top  position inside the arena (px).
+          POSITION
+          ─────────────────────────────────────────────────────────────────
+          data-x                Starting left position inside the arena (px).
+          data-y                Starting top  position inside the arena (px).
 
-        SPRITES
-        ─────────────────────────────────────────────────────────────────
-        data-idle-1           Path to idle frame 1  (relative to index.html)
-        data-idle-2           Path to idle frame 2
-        data-walk-1           Path to walk frame 1
-        data-walk-2           Path to walk frame 2
+          SPRITES
+          ─────────────────────────────────────────────────────────────────
+          data-idle-1           Path to idle frame 1  (relative to index.html)
+          data-idle-2           Path to idle frame 2
+          data-walk-1           Path to walk frame 1
+          data-walk-2           Path to walk frame 2
 
-        MOVEMENT
-        ─────────────────────────────────────────────────────────────────
-        data-can-move         "true"  → NPC wanders randomly around the arena.
-                              "false" → NPC stands still (use for signs,
-                                        items, or fixed characters).
+          MOVEMENT
+          ─────────────────────────────────────────────────────────────────
+          data-can-move         "true"  → NPC wanders randomly around the arena.
+                                "false" → NPC stands still (use for signs,
+                                          items, or fixed characters).
 
-        DIALOGUE
-        ─────────────────────────────────────────────────────────────────
-        data-dialogue-mode    "sequence" → lines play in order, then loop.
-                              "random"   → a random line is picked each time.
+          DIALOGUE
+          ─────────────────────────────────────────────────────────────────
+          data-dialogue-mode    "sequence" → lines play in order, then loop.
+                                "random"   → a random line is picked each time.
 
-        data-dialogue         All dialogue lines written as ONE attribute.
-                              Separate individual lines with  |
+          data-dialogue         All dialogue lines written as ONE attribute.
+                                Separate individual lines with  |
 
-                              Special tokens you can use inside any line:
-                                /n
-                                  → line break (new line in the dialogue box)
+                                Special tokens you can use inside any line:
+                                  /n
+                                    → line break (new line in the dialogue box)
 
-                                {link:Label|URL}
-                                  → a clickable hyperlink. Opens in a new tab.
-                                  Example: {link:My Portfolio|https://mysite.com}
+                                  {link:Label|URL}
+                                    → a clickable hyperlink. Opens in a new tab.
+                                    Example: {link:My Portfolio|https://mysite.com}
 
-                                {img:path/to/image.png}
-                                  → places an image to the RIGHT of the text.
-                                  The dialogue box grows to fit it.
-                                  Tweak --dialogueImageSize in styles.css to
-                                  change how large the image appears.
-                                  Example: {img:Assets/preview.png}
+                                  {img:path/to/image.png}
+                                    → places an image to the RIGHT of the text.
+                                    The dialogue box grows to fit it.
+                                    Tweak --dialogueImageSize in styles.css to
+                                    change how large the image appears.
+                                    Example: {img:Assets/preview.png}
 
-        FULL EXAMPLE
-        ─────────────────────────────────────────────────────────────────
-        <div class="game-square" id="guide"
-             data-x="500"  data-y="400"
-             data-idle-1="Assets/GuideIdle1.png.png"
-             data-idle-2="Assets/GuideIdle2.png.png"
-             data-walk-1="Assets/GuideWalk1.png.png"
-             data-walk-2="Assets/GuideWalk2.png.png"
-             data-can-move="true"
-             data-dialogue-mode="sequence"
-             data-dialogue="Hello traveller! | Check out my work! {img:Assets/preview.png} | See you around! /n Come back soon.">
+          FULL EXAMPLE
+          ─────────────────────────────────────────────────────────────────
+          <div class="game-square" id="guide"
+              data-x="500"  data-y="400"
+              data-idle-1="Assets/GuideIdle1.png.png"
+              data-idle-2="Assets/GuideIdle2.png.png"
+              data-walk-1="Assets/GuideWalk1.png.png"
+              data-walk-2="Assets/GuideWalk2.png.png"
+              data-can-move="true"
+              data-dialogue-mode="sequence"
+              data-dialogue="Hello traveller! | Check out my work! {img:Assets/preview.png} | See you around! /n Come back soon.">
+          </div>
+          ================================================================
+        -->
+        <img src="Assets/Tomer'sWebsiteTempWorld1.png" class="world-map" alt="">
+        <img id="world-hitbox" src="Assets/Tomer'sWebsiteTempWorld1Hitbox.png.png" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;" alt="">
+        
+        <canvas id="hitbox-canvas" style="display:none;"></canvas>
+        <!-- NPC 1 — wandering, sequence dialogue -->
+        <div class="game-square" id="square1"
+            data-x="1500" data-y="1800"
+            data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+            data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+            data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+            data-can-move="true"
+            data-dialogue-mode="sequence"
+            data-dialogue="Hello — this is Square 1. || Hello — still Square 1. /n {link:Google|https://google.com} || Hello — really still Square 1.">
         </div>
-        ================================================================
-      -->
 
-      <!-- NPC 1 — wandering, sequence dialogue -->
-      <div class="game-square" id="square1"
-           data-x="1000" data-y="800"
-           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
-           data-can-move="true"
-           data-dialogue-mode="sequence"
-           data-dialogue="Hello — this is Square 1. || Hello — still Square 1. /n {link:Google|https://google.com} || Hello — really still Square 1.">
+        <!-- NPC 2 — wandering, random dialogue -->
+        <div class="game-square" id="square2"
+            data-x="1800" data-y="1600"
+            data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+            data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+            data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+            data-can-move="true"
+            data-dialogue-mode="random"
+            data-dialogue="Square 2 says: welcome /n to the demo! || Square 2 says: second line.">
+        </div>
+
+        <!-- NPC 3 — stationary, sequence dialogue with an image token -->
+        <div class="game-square" id="square3"
+            data-x="1400" data-y="1100"
+            data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+            data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+            data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+            data-can-move="false"
+            data-dialogue-mode="sequence"
+            data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/ButtonLayout.png|120} || Square 3: another response.">
+        </div>
+
+        <!-- NPC 4 — wandering, random dialogue -->
+        <div class="game-square" id="square4"
+            data-x="1900" data-y="1600"
+            data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+            data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+            data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+            data-can-move="true"
+            data-dialogue-mode="random"
+            data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! || AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
+        </div>
+
+        <!-- NPC 4 — wandering, random dialogue -->
+        <div class="game-square" id="square5"
+            data-x="1900" data-y="2000"
+            data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
+            data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
+            data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
+            data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
+            data-can-move="true"
+            data-dialogue-mode="random"
+            data-dialogue="Bawk || Bakaw || Chirp || {img:Assets/Tomer'sWebsiteChickenIdle2.png.png|120}">
+        </div>
+
+          <div class="game-square" id="square6"
+            data-x="1000" data-y="1300"
+            data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
+            data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
+            data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
+            data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
+            data-can-move="true"
+            data-dialogue-mode="random"
+            data-dialogue="Bawk || Bakaw || Chirp || {img:Assets/Tomer'sWebsiteChickenIdle2.png.png|120}">
+        </div>
+
+        <!-- Player sprite — do not remove -->
+        <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
       </div>
-
-      <!-- NPC 2 — wandering, random dialogue -->
-      <div class="game-square" id="square2"
-           data-x="800" data-y="600"
-           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
-           data-can-move="true"
-           data-dialogue-mode="random"
-           data-dialogue="Square 2 says: welcome /n to the demo! || Square 2 says: second line.">
-      </div>
-
-      <!-- NPC 3 — stationary, sequence dialogue with an image token -->
-      <div class="game-square" id="square3"
-           data-x="1400" data-y="300"
-           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
-           data-can-move="false"
-           data-dialogue-mode="sequence"
-           data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/ButtonLayout.png|120} || Square 3: another response.">
-      </div>
-
-      <!-- NPC 4 — wandering, random dialogue -->
-      <div class="game-square" id="square4"
-           data-x="900" data-y="600"
-           data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-           data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-           data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
-           data-can-move="true"
-           data-dialogue-mode="random"
-           data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! || AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
-      </div>
-
-      <!-- Player sprite — do not remove -->
-      <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
-    </div>
-
+  </div>
     <!-- TomeBoy background frame — sits behind the button controls -->
-    <div id="tomeboy-frame" class="tomeboy-frame" aria-hidden="true">
-      <img src="Assets/WebsiteTomeBoySprite.png.png" class="tomeboy-sprite" alt="">
-    </div>
-
+   <div id="tomeboy-frame" class="tomeboy-frame" aria-hidden="true">
+    <img src="Assets/WebsiteTomeBoySprite.png.png" class="tomeboy-sprite" alt="">
+   </div>
+  
     <!-- On-screen controls — sprite image with invisible hit areas overlaid -->
+  <div id="button-controls" class="button-controls" aria-label="On-screen controls">
+    <div class="controller-wrap">
+      <img src="Assets/WebsiteGameBoyButton.png.png" class="controller-sprite" alt="Controller" draggable="false">
+      <button type="button" id="upBtn"    class="ctrl-hit dpad-hit up"    aria-label="Move up"></button>
+      <button type="button" id="leftBtn"  class="ctrl-hit dpad-hit left"  aria-label="Move left"></button>
+      <button type="button" id="rightBtn" class="ctrl-hit dpad-hit right" aria-label="Move right"></button>
+      <button type="button" id="downBtn"  class="ctrl-hit dpad-hit down"  aria-label="Move down"></button>
+      <button type="button" id="actionBtn" class="ctrl-hit action-hit a-btn" aria-label="Action"></button>
+      <button type="button" id="sprintBtn" class="ctrl-hit action-hit b-btn" aria-pressed="false" aria-label="Sprint"></button>
+    </div>
+  </div>
+
+<!-- Move button-controls INSIDE the tomeboy-frame -->
     <div id="button-controls" class="button-controls" aria-label="On-screen controls">
-      <!-- The controller sprite. All hit buttons are positioned absolutely on top. -->
       <div class="controller-wrap">
-        <img src="Assets/WebsiteGameBoyButton.png.png" class="controller-sprite" alt="Controller" draggable="false">
-
-        <!-- D-pad: four invisible buttons covering each arm of the cross -->
-        <button type="button" id="upBtn"    class="ctrl-hit dpad-hit up"    aria-label="Move up"></button>
-        <button type="button" id="leftBtn"  class="ctrl-hit dpad-hit left"  aria-label="Move left"></button>
-        <button type="button" id="rightBtn" class="ctrl-hit dpad-hit right" aria-label="Move right"></button>
-        <button type="button" id="downBtn"  class="ctrl-hit dpad-hit down"  aria-label="Move down"></button>
-
-        <!-- Action buttons -->
-        <button type="button" id="actionBtn" class="ctrl-hit action-hit a-btn" aria-label="Action"></button>
-        <button type="button" id="sprintBtn" class="ctrl-hit action-hit b-btn" aria-pressed="false" aria-label="Sprint"></button>
+          <!-- ... all your buttons stay exactly the same ... -->
+        </div>
       </div>
     </div>
+
   </main>
 
   <footer>
     <small>&copy; <span id="year"></span> Tomer Hirschauge</small>
   </footer>
 
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -34,18 +34,67 @@ function getVar(name, fallback = 0) {
 
 const isMobile = window.innerWidth < 900;
 
+const hitboxCanvas = document.getElementById('hitbox-canvas');
+const hitboxCtx    = hitboxCanvas ? hitboxCanvas.getContext('2d', { willReadFrequently: true }) : null;
+let   hitboxReady  = false;
+
+const worldHitboxImg = document.getElementById('world-hitbox');
+if (worldHitboxImg && hitboxCtx) {
+    function loadHitbox() {
+        if (worldHitboxImg.naturalWidth === 0) return; // not ready yet
+        hitboxCanvas.width  = worldHitboxImg.naturalWidth;
+        hitboxCanvas.height = worldHitboxImg.naturalHeight;
+        hitboxCtx.drawImage(worldHitboxImg, 0, 0);
+        hitboxReady = true;
+    }
+    worldHitboxImg.addEventListener('load', loadHitbox);
+    if (worldHitboxImg.complete) loadHitbox();
+}
+
+const COLLISION_FEET_OFFSET = 10;
+
+// World map offset — must match .world-map top/left in styles.css
+const WORLD_MAP_OFFSET_X = 400;   // px  (matches `left: 400px` in CSS)
+const WORLD_MAP_OFFSET_Y = 600;   // px  (matches `top:  600px` in CSS)
+
+function isBlockedAt(arenaX, arenaY) {
+    if (!hitboxReady || !hitboxCtx) return false;
+
+    // Convert arena coords to hitbox image coords
+    const worldPxW = parsePx(getComputedStyle(root).getPropertyValue('--worldWidth'))  || hitboxCanvas.width;
+    const worldPxH = parsePx(getComputedStyle(root).getPropertyValue('--worldHeight')) || hitboxCanvas.height;
+    const imgX = Math.round((arenaX - WORLD_MAP_OFFSET_X) / worldPxW  * hitboxCanvas.width);
+    const imgY = Math.round((arenaY - WORLD_MAP_OFFSET_Y) / worldPxH * hitboxCanvas.height);
+
+    if (imgX < 0 || imgY < 0 || imgX >= hitboxCanvas.width || imgY >= hitboxCanvas.height) return false;
+
+    const pixel = hitboxCtx.getImageData(imgX, imgY, 1, 1).data;
+    // Blocked if red channel dominant and not transparent
+    return pixel[3] > 128 && pixel[0] > 180 && pixel[1] < 80 && pixel[2] < 80;
+}
+
+
+// ── UI POSITION OFFSETS ──────────────────────────────────────────────────────
+// Adjust these to reposition the TomeBoy frame and button controls on screen.
+// Positive X = right, Negative X = left. Positive Y = down, Negative Y = up.
+const TOMEBOY_OFFSET_X  =   0;   // px
+const TOMEBOY_OFFSET_Y  =   -125;   // px
+const CONTROLS_OFFSET_X =   0;   // px
+const CONTROLS_OFFSET_Y =   325;   // px
+
 (function applyZoom() {
     const varName = isMobile ? '--zoom-mobile' : '--zoom-desktop';
     const zoom    = getVar(varName, 1.0);
-    document.body.style.transformOrigin = 'top left';
-    document.body.style.transform       = `scale(${zoom})`;
-    document.body.style.width           = `${100 / zoom}%`;
+    const zoomRoot = document.getElementById('zoom-root');
+    if (!zoomRoot) return;
+    zoomRoot.style.transformOrigin = 'top left';
+    zoomRoot.style.transform       = `scale(${zoom})`;
+    zoomRoot.style.width           = `${100 / zoom}%`;
 })();
 
 // ---------------------------------------------------------------------------
 //  Movement state
-// ---------------------------------------------------------------------------
-
+// -------------------------------------------------------------------
 let currentX = getVar('--buttonX', 0);
 let currentY = getVar('--buttonY', 150);
 
@@ -53,38 +102,49 @@ const baseSpeedPxPerSecond  = 200;
 const sprintSpeedMultiplier = 1.8;
 
 // ---------------------------------------------------------------------------
-//  Follow boundary — derived from the TomeBoy sprite's screen size each frame.
+//  TomeBoy screen-hole geometry
 //
-//  SCREEN_REGION_X / SCREEN_REGION_Y — half-width/height of the play area
-//  as a fraction of the TomeBoy sprite's rendered size.
-//  Increase to give the player more room, decrease to scroll sooner.
+//  The TomeBoy sprite is 480×480 native. The black screen hole was measured:
+//    left=112  right=367  top=131  bottom=339
+//    centre: (239.5, 235.0)   half-extents: (127.5, 104.0)
 //
-//  SCREEN_REGION_OFFSET_X / SCREEN_REGION_OFFSET_Y — shift the centre of the
-//  follow region in pixels relative to the viewport centre.
-//  Negative Y moves the region UP (use this since the TomeBoy screen sits
-//  above the viewport centre). Positive X moves it right.
+//  The sprite is position:fixed centred by CSS, so we can compute the hole's
+//  exact viewport rect from just the rendered size — no element queries needed.
+//
+//  Rendered size formula must match CSS: width = height = 480px * ctrl-scale / 2
 // ---------------------------------------------------------------------------
 
-const SCREEN_REGION_X = 0.20;
-const SCREEN_REGION_Y = 0.18;
+const TB_NATIVE      = 480;
+const TB_HOLE_CX     = 239.5;
+const TB_HOLE_CY     = 235.0;
+const TB_HOLE_HALF_W = 97.5;
+const TB_HOLE_HALF_H = 80.0;
 
-const SCREEN_REGION_OFFSET_X =   0;    // px — shift region left(-) / right(+)
-const SCREEN_REGION_OFFSET_Y = -140;    // px — shift region up(-) / down(+)
+function getTomeboySize() {
+    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 2.8;
+    return 480 * ctrlScale / 2;   // matches CSS: calc(480px * var(--ctrl-scale) / 2)
+}
 
-function getFollowThresholds() {
-    const el = document.getElementById('tomeboy-frame');
-    if (el) {
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) {
-            return {
-                x:       r.width  * SCREEN_REGION_X,
-                y:       r.height * SCREEN_REGION_Y,
-                offsetX: SCREEN_REGION_OFFSET_X,
-                offsetY: SCREEN_REGION_OFFSET_Y,
-            };
-        }
+function getScreenHoleRect() {
+    // Read the TomeBoy's actual rendered position — most reliable
+    const tbRect = document.getElementById('tomeboy-frame')?.getBoundingClientRect();
+    let tbLeft, tbTop, tbSize;
+    if (tbRect && tbRect.width > 0) {
+        tbLeft = tbRect.left;
+        tbTop  = tbRect.top;
+        tbSize = tbRect.width;
+    } else {
+        tbSize = getTomeboySize();
+        tbLeft = window.innerWidth  / 2 - tbSize / 2;
+        tbTop  = window.innerHeight / 2 - tbSize / 2;
     }
-    return { x: 120, y: 120, offsetX: SCREEN_REGION_OFFSET_X, offsetY: SCREEN_REGION_OFFSET_Y };
+    const scale = tbSize / TB_NATIVE;
+    return {
+        cx:    tbLeft + TB_HOLE_CX     * scale,
+        cy:    tbTop  + TB_HOLE_CY     * scale,
+        halfW: TB_HOLE_HALF_W * scale,
+        halfH: TB_HOLE_HALF_H * scale,
+    };
 }
 
 let dialogueBoundaryScale = 3.0;
@@ -187,12 +247,12 @@ for (const el of squareEls) {
 
     // Read sprite paths from data-* (fall back to a shared default path)
     const framesIdle = [
-        el.dataset.idle1 || 'Assets/WebsiteNPC1Idle1.png.png',
-        el.dataset.idle2 || 'Assets/WebsiteNPC1Idle2.png.png'
+        el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png.png',
+        el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png.png'
     ];
     const framesWalk = [
-        el.dataset.walk1 || 'Assets/WebsiteNPC1Walk1.png.png',
-        el.dataset.walk2 || 'Assets/WebsiteNPC1Walk2.png.png'
+        el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png.png',
+        el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png.png'
     ];
 
     // ── Store runtime state ─────────────────────────────────────────────────
@@ -415,11 +475,11 @@ function startTypewriter(el, text, cps = 60) {
 
 function isSquareWithinDialogueBoundary(squareEl) {
     if (!squareEl) return false;
-    const r     = squareEl.getBoundingClientRect();
+    const r    = squareEl.getBoundingClientRect();
+    const hole = getScreenHoleRect();
     const scale = Number(dialogueBoundaryScale) || 1;
-    const th    = getFollowThresholds();
-    return Math.abs((r.left + r.width  / 2) - (window.innerWidth  / 2 + th.offsetX)) <= th.x * scale
-        && Math.abs((r.top  + r.height / 2) - (window.innerHeight / 2 + th.offsetY)) <= th.y * scale;
+    return Math.abs((r.left + r.width  / 2) - hole.cx) <= hole.halfW * scale
+        && Math.abs((r.top  + r.height / 2) - hole.cy) <= hole.halfH * scale;
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dialogueNode) hideDialogue(); });
@@ -530,9 +590,17 @@ function updateSquares(dt) {
                 if (ny < 0)       { ny = 0;       s.dirY *= -1; }
                 if (nx > maxLeft) { nx = maxLeft; s.dirX *= -1; }
                 if (ny > maxTop)  { ny = maxTop;  s.dirY *= -1; }
-                s.x = nx; s.y = ny;
-                el.style.left = `${Math.round(nx)}px`;
-                el.style.top  = `${Math.round(ny)}px`;
+                
+                const npcFeetX = nx + (el.offsetWidth  || 0) / 2;
+                const npcFeetY = ny + (el.offsetHeight || 0);
+                if (!isBlockedAt(npcFeetX, npcFeetY)) {
+                    s.x = nx; s.y = ny;
+                } else {
+                    s.dirX *= -1; s.dirY *= -1;  // bounce off wall
+                }
+                el.style.left = `${Math.round(s.x)}px`;
+                el.style.top  = `${Math.round(s.y)}px`;
+                
                 if (Math.abs(s.dirX) > 0.05) s.lastDirection = s.dirX < 0 ? 'left' : 'right';
             }
         }
@@ -635,112 +703,353 @@ document.addEventListener('keyup', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-//  Controls + TomeBoy frame positioning
+//  Button controls positioning
 //
-//  Both elements share one scale (--ctrl-scale) and the same scroll-delta
-//  system — they only move when the page scrolls.
-//
-//  getTomeboyOffset() calculates how far the TomeBoy frame sits above/left
-//  of the button sprite using native pixel measurements:
-//    Button sprite native size: 200×120px
-//    TomeBoy native size: 480×480px
-//    D-pad centre in TomeBoy: approx x=185, y=400
-//    D-pad centre in button sprite: approx x=60 (30%), y=60 (50%)
-//    → TomeBoy top-left = button top-left offset by -(125, 340) * scale
+//  The TomeBoy is position:fixed centred by CSS — its viewport rect never
+//  changes except on resize. We read it directly from getBoundingClientRect()
+//  so we're always working from the real rendered position, not a calculation
+//  that might disagree with the browser's CSS engine.
 // ---------------------------------------------------------------------------
-
-const CONTROLS_OFFSET = { 
-    desktop: { x: -30, y: -240 }, 
-    mobile:  { x: -200, y: -300 }, 
-};
 
 const controlsEl = document.getElementById('button-controls');
 const tomeboyEl  = document.getElementById('tomeboy-frame');
 
-let controlsPageX = 0;
-let controlsPageY = 0;
-let prevScrollX   = window.scrollX;
-let prevScrollY   = window.scrollY;
-
-function getTomeboyOffset() {
-    const s = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
-    return { x: -Math.round(140 * s), y: -Math.round(320 * s) };
-}
-
-function initControlsPosition() {
+function positionButtonControls() {
     if (!controlsEl) return;
-    const offset    = isMobile ? CONTROLS_OFFSET.mobile : CONTROLS_OFFSET.desktop;
-    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
-    const cW        = controlsEl.offsetWidth || Math.round(200 * ctrlScale);
-
-    controlsPageX = currentX + offset.x;
-    controlsPageY = currentY + offset.y;
-
-    controlsEl.style.left      = `${Math.round(controlsPageX - cW / 2)}px`;
-    controlsEl.style.top       = `${Math.round(controlsPageY)}px`;
-    controlsEl.style.transform = 'none';
-
-    if (tomeboyEl) {
-        const tb = getTomeboyOffset();
-        tomeboyEl.style.left      = `${Math.round(controlsPageX - cW / 2 + tb.x)}px`;
-        tomeboyEl.style.top       = `${Math.round(controlsPageY + tb.y)}px`;
-        tomeboyEl.style.transform = 'none';
+    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 2.8;
+    const btnW = 150 * ctrlScale;
+    const btnH =  90 * ctrlScale;
+    controlsEl.style.left      = `${Math.round(window.innerWidth  / 2 + CONTROLS_OFFSET_X)}px`;
+    controlsEl.style.top       = `${Math.round(window.innerHeight / 2 + CONTROLS_OFFSET_Y)}px`;
+    controlsEl.style.transform = `translate(-50%, -50%)`;
+    // Get the TomeBoy's actual rendered rect — most reliable source of truth
+    let tbLeft, tbTop, tbSize;
+    const tbRect = tomeboyEl?.getBoundingClientRect();
+    if (tbRect && tbRect.width > 0) {
+        tbLeft = tbRect.left;
+        tbTop  = tbRect.top;
+        tbSize = tbRect.width;   // square sprite, width == height
+    } else {
+        // Fallback before element is measured
+        tbSize = getTomeboySize();
+        tbLeft = window.innerWidth  / 2 - tbSize / 2;
+        tbTop  = window.innerHeight / 2 - tbSize / 2;
     }
+
+    const scale = tbSize / TB_NATIVE;
+
+    // D-pad centre in native TomeBoy sprite coords: (185, 400)
+    const dpadVpX = tbLeft + 185 * scale;
+    const dpadVpY = tbTop  + 400 * scale;
+
+    // Button wrapper: 150×90 * ctrl-scale. D-pad sits at ~30% across, ~50% down.
+
 }
 
-function updateControlsPosition() {
-    if (!controlsEl) return;
-    const dScrollX = window.scrollX - prevScrollX;
-    const dScrollY = window.scrollY - prevScrollY;
-    prevScrollX = window.scrollX;
-    prevScrollY = window.scrollY;
-    if (dScrollX === 0 && dScrollY === 0) return;
-
-    controlsPageX += dScrollX;
-    controlsPageY += dScrollY;
-
-    const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 3;
-    const cW        = controlsEl.offsetWidth || Math.round(200 * ctrlScale);
-    const tb        = getTomeboyOffset();
-
-    controlsEl.style.left = `${Math.round(controlsPageX - cW / 2)}px`;
-    controlsEl.style.top  = `${Math.round(controlsPageY)}px`;
-
-    if (tomeboyEl) {
-        tomeboyEl.style.left = `${Math.round(controlsPageX - cW / 2 + tb.x)}px`;
-        tomeboyEl.style.top  = `${Math.round(controlsPageY + tb.y)}px`;
-    }
+function positionTomeboy() {
+    if (!tomeboyEl) return;
+    tomeboyEl.style.left      = `${Math.round(window.innerWidth  / 2 + TOMEBOY_OFFSET_X)}px`;
+    tomeboyEl.style.top       = `${Math.round(window.innerHeight / 2 + TOMEBOY_OFFSET_Y)}px`;
+    tomeboyEl.style.transform = `translate(-50%, -50%)`;
 }
 
+window.addEventListener('resize', () => {
+    positionTomeboy();
+    positionButtonControls();
+});
 // ---------------------------------------------------------------------------
-//  Camera — follow-scroll (original behaviour, now in its own function)
+//  Camera — only follows player while movement input is held.
+//  When no input is active the user can scroll freely.
+//
+//  Two modes once input is held:
+//    SNAP: player is outside the screen hole (user scrolled away).
+//          Camera lerps quickly back to centre on the player.
+//    FOLLOW: player is inside the hole. Camera only scrolls when the
+//            player walks far enough to exit the hole boundary — it
+//            moves exactly as much as needed, no more, no less.
 // ---------------------------------------------------------------------------
 
-function updateCamera() {
+let cameraSnapActive = false;
+const SNAP_LERP = 18;   // lerp factor for snap-back — higher = faster re-centre
+
+function isAnyInputHeld() {
+    return pressed.left || pressed.right || pressed.up || pressed.down;
+}
+
+
+// ---------------------------------------------------------------------------
+//  Drag to reposition — click/touch any actor (player or NPC) to pick it up
+//  and drag it around the arena. Dropped outside the screen-hole or on a wall
+//  snaps to the nearest valid position.
+// ---------------------------------------------------------------------------
+
+let dragState = null;
+// dragState = {
+//   type:       'player' | 'npc'
+//   id:         npc id string (npc only)
+//   el:         the DOM element being dragged
+//   offsetX/Y:  cursor offset from element top-left at grab time (arena coords)
+// }
+
+// Convert a viewport point to arena coordinates
+function viewportToArena(vpX, vpY) {
+    if (!arena) return { x: vpX, y: vpY };
+    const r = arena.getBoundingClientRect();
+    return { x: vpX - r.left + window.scrollX - r.left + arena.getBoundingClientRect().left - arena.getBoundingClientRect().left,
+             y: vpY - r.top };
+}
+
+// Simpler version — just subtract arena's page position
+function vpToArena(vpX, vpY) {
+    if (!arena) return { x: vpX, y: vpY };
+    const r = arena.getBoundingClientRect();
+    return {
+        x: vpX - r.left,
+        y: vpY - r.top,
+    };
+}
+
+// Find the nearest non-blocked position within a search radius
+function findNearestValidPosition(arenaX, arenaY, spriteSize) {
+    const offset = COLLISION_FEET_OFFSET;
+    function clear(px, py) {
+        return !isBlockedAt(px + spriteSize * 0.2, py + spriteSize - offset)
+            && !isBlockedAt(px + spriteSize * 0.5, py + spriteSize - offset)
+            && !isBlockedAt(px + spriteSize * 0.8, py + spriteSize - offset);
+    }
+    if (clear(arenaX, arenaY)) return { x: arenaX, y: arenaY };
+    // Spiral search outward in steps
+    for (let radius = 4; radius <= 120; radius += 4) {
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+            const tx = arenaX + Math.cos(angle) * radius;
+            const ty = arenaY + Math.sin(angle) * radius;
+            if (clear(tx, ty)) return { x: tx, y: ty };
+        }
+    }
+    return { x: arenaX, y: arenaY }; // give up, return original
+}
+
+function isInsideScreenHole(vpX, vpY) {
+    const hole = getScreenHoleRect();
+    return Math.abs(vpX - hole.cx) <= hole.halfW
+        && Math.abs(vpY - hole.cy) <= hole.halfH;
+}
+
+function dropDragged() {
+    if (!dragState) return;
+    const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
+
+    if (dragState.type === 'player') {
+        const valid = findNearestValidPosition(currentX, currentY, spriteSize);
+        currentX = valid.x;
+        currentY = valid.y;
+        applyValues();
+    } else {
+        const s = squareStates[dragState.id];
+        if (s) {
+            const valid = findNearestValidPosition(s.x, s.y, spriteSize);
+            s.x = valid.x;
+            s.y = valid.y;
+            s.el.style.left = `${Math.round(s.x)}px`;
+            s.el.style.top  = `${Math.round(s.y)}px`;
+            s.interactedPaused = false;
+        }
+    }
+    dragState.el.style.opacity  = '';
+    dragState.el.style.cursor   = '';
+    dragState = null;
+}
+
+function onDragPointerMove(e) {
+    if (!dragState) return;
+    const vpX = e.clientX;
+    const vpY = e.clientY;
+
+    // Auto-drop if cursor leaves the screen hole
+    if (!isInsideScreenHole(vpX, vpY)) { dropDragged(); return; }
+
+    const pos    = vpToArena(vpX, vpY);
+    const arenaX = pos.x - dragState.offsetX;
+    const arenaY = pos.y - dragState.offsetY;
+    const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
+    const maxX = (arena?.clientWidth  || 9999) - spriteSize;
+    const maxY = (arena?.clientHeight || 9999) - spriteSize;
+    const clampedX = Math.max(0, Math.min(arenaX, maxX));
+    const clampedY = Math.max(0, Math.min(arenaY, maxY));
+
+    if (dragState.type === 'player') {
+        currentX = clampedX;
+        currentY = clampedY;
+        applyValues();
+    } else {
+        const s = squareStates[dragState.id];
+        if (s) {
+            s.x = clampedX;
+            s.y = clampedY;
+            s.el.style.left = `${Math.round(s.x)}px`;
+            s.el.style.top  = `${Math.round(s.y)}px`;
+        }
+    }
+
+    // Camera follows dragged actor
+    cameraTargetX = window.scrollX;
+    cameraTargetY = window.scrollY;
+}
+
+function onDragPointerUp(e) {
+    dropDragged();
+    window.removeEventListener('pointermove', onDragPointerMove);
+    window.removeEventListener('pointerup',   onDragPointerUp);
+}
+
+function startDrag(e, type, id, el) {
+    e.preventDefault();
+    hideDialogue();
+    const pos = vpToArena(e.clientX, e.clientY);
+    const r   = el.getBoundingClientRect();
+    const ar  = arena.getBoundingClientRect();
+
+    dragState = {
+        type,
+        id,
+        el,
+        offsetX: e.clientX - r.left,   // cursor offset within the sprite
+        offsetY: e.clientY - r.top,
+    };
+
+    el.style.opacity = '0.75';
+    el.style.cursor  = 'grabbing';
+
+    if (type === 'npc') {
+        const s = squareStates[id];
+        if (s) { s.interactedPaused = true; s.state = 'idle'; }
+    }
+
+    window.addEventListener('pointermove', onDragPointerMove);
+    window.addEventListener('pointerup',   onDragPointerUp);
+}
+
+// Attach drag listeners to player
+if (player) {
+    player.style.cursor = 'grab';
+    player.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        startDrag(e, 'player', 'player', player);
+    });
+}
+
+// Attach drag listeners to all NPC elements
+for (const { id, el } of Object.values(squareStates)) {
+    el.style.cursor = 'grab';
+    el.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        startDrag(e, 'npc', id, el);
+    });
+}
+
+
+// ---------------------------------------------------------------------------
+//  Camera
+// ---------------------------------------------------------------------------
+
+// Target scroll position — updated every frame, applied smoothly
+let cameraTargetX = window.scrollX;
+let cameraTargetY = window.scrollY;
+
+function isAnyInputHeld() {
+    return pressed.left || pressed.right || pressed.up || pressed.down;
+}
+
+// Track player velocity for predictive camera
+let playerVelX = 0;
+let playerVelY = 0;
+let prevPlayerX = currentX;
+let prevPlayerY = currentY;
+
+// How many pixels ahead of the player the camera looks
+const CAMERA_LOOKAHEAD = 80;   // px — tweak this
+const CAMERA_LERP      = 10;   // smoothing — lower = smoother but more lag
+
+function updateCamera(dt) {
     if (!player) return;
-    const rect   = player.getBoundingClientRect();
-    const th     = getFollowThresholds();
-    const dxView = (rect.left + rect.width  / 2) - (window.innerWidth  / 2 + th.offsetX);
-    const dyView = (rect.top  + rect.height / 2) - (window.innerHeight / 2 + th.offsetY);
-    let scrollDX = 0, scrollDY = 0;
-    if (Math.abs(dxView) > th.x) scrollDX = (Math.abs(dxView) - th.x) * Math.sign(dxView);
-    if (Math.abs(dyView) > th.y) scrollDY = (Math.abs(dyView) - th.y) * Math.sign(dyView);
-    if (scrollDX !== 0 || scrollDY !== 0) {
+
+    // Update velocity from how much the player moved this frame
+    playerVelX = (currentX - prevPlayerX) / (dt || 1);
+    playerVelY = (currentY - prevPlayerY) / (dt || 1);
+    prevPlayerX = currentX;
+    prevPlayerY = currentY;
+
+    const hole      = getScreenHoleRect();
+    const r         = player.getBoundingClientRect();
+    const playerVpX = r.left + r.width  / 2;
+    const playerVpY = r.top  + r.height / 2;
+
+// If dragging, follow the dragged actor instead of keyboard input
+    if (dragState) {
+        const r      = dragState.el.getBoundingClientRect();
+        const actorVpX = r.left + r.width  / 2;
+        const actorVpY = r.top  + r.height / 2;
+        const dxView = actorVpX - hole.cx;
+        const dyView = actorVpY - hole.cy;
+        if (Math.abs(dxView) > hole.halfW) cameraTargetX += (Math.abs(dxView) - hole.halfW) * Math.sign(dxView);
+        if (Math.abs(dyView) > hole.halfH) cameraTargetY += (Math.abs(dyView) - hole.halfH) * Math.sign(dyView);
         const doc = document.documentElement;
+        cameraTargetX = Math.min(Math.max(0, cameraTargetX), Math.max(0, doc.scrollWidth  - window.innerWidth));
+        cameraTargetY = Math.min(Math.max(0, cameraTargetY), Math.max(0, doc.scrollHeight - window.innerHeight));
+        const lerpFactor = Math.min(1, CAMERA_LERP * dt);
         window.scrollTo({
-            left:     Math.min(Math.max(0, window.scrollX + scrollDX), Math.max(0, doc.scrollWidth  - window.innerWidth)),
-            top:      Math.min(Math.max(0, window.scrollY + scrollDY), Math.max(0, doc.scrollHeight - window.innerHeight)),
+            left: window.scrollX + (cameraTargetX - window.scrollX) * lerpFactor,
+            top:  window.scrollY + (cameraTargetY - window.scrollY) * lerpFactor,
             behavior: 'auto'
         });
+        return;
     }
+
+    if (!isAnyInputHeld()) {
+        cameraTargetX = window.scrollX;
+        cameraTargetY = window.scrollY;
+        playerVelX = 0;
+        playerVelY = 0;
+        cameraSnapActive = false;
+        return;
+    }
+
+    // How far the player is from the hole centre
+    const dxView = playerVpX - hole.cx;
+    const dyView = playerVpY - hole.cy;
+
+    const outsideX = Math.abs(dxView) > hole.halfW;
+    const outsideY = Math.abs(dyView) > hole.halfH;
+
+    if (outsideX || outsideY) {
+        // Player has hit the boundary — scroll exactly enough to bring them back in,
+        // plus a lookahead nudge in the direction they're moving
+        if (outsideX) cameraTargetX += (Math.abs(dxView) - hole.halfW) * Math.sign(dxView)
+                                     + playerVelX * dt * CAMERA_LOOKAHEAD * 0.016;
+        if (outsideY) cameraTargetY += (Math.abs(dyView) - hole.halfH) * Math.sign(dyView)
+                                     + playerVelY * dt * CAMERA_LOOKAHEAD * 0.016;
+    }
+
+    // Clamp to valid scroll range
+    const doc = document.documentElement;
+    cameraTargetX = Math.min(Math.max(0, cameraTargetX), Math.max(0, doc.scrollWidth  - window.innerWidth));
+    cameraTargetY = Math.min(Math.max(0, cameraTargetY), Math.max(0, doc.scrollHeight - window.innerHeight));
+
+    // Lerp scroll toward target each frame
+    const lerpFactor = Math.min(1, CAMERA_LERP * dt);
+    const newScrollX = window.scrollX + (cameraTargetX - window.scrollX) * lerpFactor;
+    const newScrollY = window.scrollY + (cameraTargetY - window.scrollY) * lerpFactor;
+
+    window.scrollTo({ left: newScrollX, top: newScrollY, behavior: 'auto' });
 }
 
 function centerCameraOnPlayer() {
     if (!player) return;
-    const r = player.getBoundingClientRect();
+    const hole = getScreenHoleRect();
+    const r    = player.getBoundingClientRect();
     window.scrollTo({
-        left:     r.left + window.scrollX - window.innerWidth  / 2 + r.width  / 2,
-        top:      r.top  + window.scrollY - window.innerHeight / 2 + r.height / 2,
+        left:     window.scrollX + (r.left + r.width  / 2) - hole.cx,
+        top:      window.scrollY + (r.top  + r.height / 2) - hole.cy,
         behavior: 'instant'
     });
 }
@@ -791,10 +1100,41 @@ function loop(timestamp) {
 
     if (dx !== 0 || dy !== 0) {
         if (dx !== 0 && dy !== 0) { dx *= 1 / Math.sqrt(2); dy *= 1 / Math.sqrt(2); }
-        const speed = baseSpeedPxPerSecond * (isSprinting() ? sprintSpeedMultiplier : 1);
-        currentX = Math.max(0, currentX + dx * speed * dt);
-        currentY = Math.max(0, currentY + dy * speed * dt);
+        const speed      = baseSpeedPxPerSecond * (isSprinting() ? sprintSpeedMultiplier : 1);
+        const playerSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
+        const nextX      = Math.max(0, currentX + dx * speed * dt);
+        const nextY      = Math.max(0, currentY + dy * speed * dt);
+
+        // Check three points across the bottom of the sprite for solid collision
+        function blockedX(px) {
+            return isBlockedAt(px + playerSize * 0.2, currentY + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(px + playerSize * 0.5, currentY + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(px + playerSize * 0.8, currentY + playerSize - COLLISION_FEET_OFFSET);
+        }
+        function blockedY(py) {
+            return isBlockedAt(currentX + playerSize * 0.2, py + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(currentX + playerSize * 0.5, py + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(currentX + playerSize * 0.8, py + playerSize - COLLISION_FEET_OFFSET);
+        }
+        function blockedXY(px, py) {
+            return isBlockedAt(px + playerSize * 0.2, py + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(px + playerSize * 0.5, py + playerSize - COLLISION_FEET_OFFSET)
+                || isBlockedAt(px + playerSize * 0.8, py + playerSize - COLLISION_FEET_OFFSET);
+        }
+
+        if (!blockedXY(nextX, nextY)) {
+            // Fully unblocked — move freely
+            currentX = nextX;
+            currentY = nextY;
+        } else {
+            // Try sliding on each axis independently
+            if (!blockedX(nextX)) currentX = nextX;
+            if (!blockedY(nextY)) currentY = nextY;
+        }
         applyValues();
+
+        prevPlayerX = currentX;
+        prevPlayerY = currentY;
     }
 
     // Player sprite animation
@@ -819,9 +1159,8 @@ function loop(timestamp) {
 
     updateSquares(dt);
     updateDepthSorting();
-    updateCamera();
+    updateCamera(dt);
     updateOverlap();
-    updateControlsPosition();
 
     // Track open dialogue and auto-close if the NPC wandered too far
     if (dialogueNode?.dataset.squareId) {
@@ -833,6 +1172,8 @@ function loop(timestamp) {
     }
 
     requestAnimationFrame(loop);
+
+    
 }
 
 // ---------------------------------------------------------------------------
@@ -840,18 +1181,11 @@ function loop(timestamp) {
 // ---------------------------------------------------------------------------
 
 applyValues();
-
-// Force scroll to (0,0) immediately — before layout settles — so the page
-// always starts from the same known position regardless of the browser
-// restoring the previous scroll. Then centerCameraOnPlayer scrolls to the
-// correct position, and initControlsPosition anchors from there.
-window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 window.addEventListener('load', () => {
-    // Reset scroll again after full load (some browsers restore it late).
-    window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+    positionTomeboy();
+    positionButtonControls();
     centerCameraOnPlayer();
-    // Sync prevScroll to wherever centerCamera landed before init reads it.
-    initControlsPosition();
 });
 requestAnimationFrame(loop);

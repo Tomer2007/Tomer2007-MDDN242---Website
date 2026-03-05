@@ -11,3 +11,20 @@ I then had the AI give the button a BoundingBox so it could overlap some new box
 Next I quickly drew up some simple character pixel art and had the AI swap the code for the button for this new image, as well as getting the AI to make the image and the Bounding boxes size use a shared variable so I can easily edit it.
 
 Next up I'm gonna get the AI to help me give the image animations (swapping between each Image with the same name but different number), and also make the image flip depending on which direction the user is moving.
+
+
+WEBSITE RULES:
+The set rules which the website is planned to be run by.
+
+1. User can use both keyboard keys and on screen buttons to move the character around the screen.
+2. User's view of the map and characters in the website's game world is limited to what they can view in the Tome-Boy border
+3. The user can interact with the world when they input the action button while their character overlaps with an NPC's bounding box
+4. User can freely scroll through the website to view the full map, however they will still be stopped by the world borders which will also block the player characters movement, so they can't go too far away from the actual map.
+5. The player character are NPC's are bound to the size of a world border which will need to match the layout of the map sprite.
+6. Although the user can look anywhere in bounds, inputting a button should smoothly reposition them with the player.
+7. The player isn't static in the centre and can move freely inside the screen, only scrolling when they approach the edge.
+8. On the side of the Tome-Boy their will be buttons on the page to teleport the character to the corresponding important NPC's.
+7. The website will remember things like the players position, the users scroll, and any progress they might have made in quests and stuff (like the chicken gathering quest)
+9. The player will start with three inputs, directional keys and buttons to move, and interact button (A button), and a sprint button (B button). They may later get other button by unlocking secrets in the website.
+10. User's can click and drag things around the screen, matching the scroll.
+
