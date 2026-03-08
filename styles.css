@@ -39,8 +39,8 @@
   */
   --control-size: clamp(15px, 7.5vw, 20px);
 
-  --worldWidth:  1800px;
-  --worldHeight: 1800px;
+  --worldWidth:  1900px;
+  --worldHeight: 1900px;
 }
 
 /* =============================================================================
