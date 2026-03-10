@@ -30,6 +30,7 @@
     <nav aria-label="Primary">
       <ul>
         <li><a href="#" aria-current="page">Home</a></li>
+        <li><a href="playground.html">NPC Playground</a></li>
       </ul>
     </nav>
 
@@ -107,8 +108,8 @@
           </div>
           ================================================================
         -->
-        <img src="Assets/Tomer'sWebsiteTempWorld2.png.png" class="world-map" alt="">
-        <img id="world-hitbox" src="Assets/Tomer'sWebsiteTempWorldHitbox2.png.png" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;" alt="">
+        <img src="Assets/Tomer'sWebsiteTempWorld3.png.png" class="world-map" alt="">
+        <img id="world-hitbox" src="Assets/Tomer'sWebsiteTempWorldHitbox3.png.png" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;" alt="">
         
         <canvas id="hitbox-canvas" style="display:none;"></canvas>
         <!-- NPC 1 — wandering, sequence dialogue -->
@@ -160,27 +161,29 @@
         </div>
 
         <!-- NPC 4 — wandering, random dialogue -->
-        <div class="game-square" id="square5"
-            data-x="1900" data-y="2000"
-            data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
-            data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
-            data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
-            data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
-            data-can-move="true"
-            data-dialogue-mode="random"
-            data-dialogue="Bawk || Bakaw || Chirp || {img:Assets/Tomer'sWebsiteChickenIdle2.png.png|120}">
-        </div>
+        <script>
+        (function(){
+          const arena = document.getElementById('arena');
+          if (!arena) return;
+          function randi(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-          <div class="game-square" id="square6"
-            data-x="1000" data-y="1300"
-            data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
-            data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
-            data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
-            data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
-            data-can-move="true"
-            data-dialogue-mode="random"
-            data-dialogue="Bawk || Bakaw || Chirp || {img:Assets/Tomer'sWebsiteChickenIdle2.png.png|120}">
-        </div>
+          for (let i = 0; i < 15; i++) {
+            const div = document.createElement('div');
+            div.className = 'game-square';
+            div.id = 'square5-' + (i + 1);
+            div.setAttribute('data-x', randi(1000, 5000));
+            div.setAttribute('data-y', randi(1000, 5000));
+            div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png.png");
+            div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png.png");
+            div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png.png");
+            div.setAttribute('data-walk-2', "Assets/Tomer'sWebsiteChickenWalk2.png.png");
+            div.setAttribute('data-can-move', 'true');
+            div.setAttribute('data-dialogue-mode', 'random');
+            div.setAttribute('data-dialogue', 'Bawk || Bakaw || Chirp || {img:Assets/Tomer\'sWebsiteChickenIdle2.png.png|120}');
+            arena.appendChild(div);
+          }
+        })();
+        </script>
 
         <!-- Player sprite — do not remove -->
         <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
@@ -188,7 +191,7 @@
   </div>
     <!-- TomeBoy background frame — sits behind the button controls -->
    <div id="tomeboy-frame" class="tomeboy-frame" aria-hidden="true">
-    <img src="Assets/WebsiteTomeBoySprite.png.png" class="tomeboy-sprite" alt="">
+    <img src="Assets/TomeBoy2Empty.png" class="tomeboy-sprite" alt="">
    </div>
   
     <!-- On-screen controls — sprite image with invisible hit areas overlaid -->

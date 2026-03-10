@@ -73,6 +73,21 @@ function isBlockedAt(arenaX, arenaY) {
     return pixel[3] > 128 && pixel[0] > 180 && pixel[1] < 80 && pixel[2] < 80;
 }
 
+function isSpriteFeetBlocked(arenaX, arenaY, spriteSize) {
+    return isBlockedAt(arenaX + spriteSize * 0.2, arenaY + spriteSize - COLLISION_FEET_OFFSET)
+        || isBlockedAt(arenaX + spriteSize * 0.5, arenaY + spriteSize - COLLISION_FEET_OFFSET)
+        || isBlockedAt(arenaX + spriteSize * 0.8, arenaY + spriteSize - COLLISION_FEET_OFFSET);
+}
+
+function clampToArena(arenaX, arenaY, spriteSize) {
+    const maxX = Math.max(0, (arena?.clientWidth  || 0) - spriteSize);
+    const maxY = Math.max(0, (arena?.clientHeight || 0) - spriteSize);
+    return {
+        x: Math.max(0, Math.min(arenaX, maxX)),
+        y: Math.max(0, Math.min(arenaY, maxY)),
+    };
+}
+
 
 // ── UI POSITION OFFSETS ──────────────────────────────────────────────────────
 // Adjust these to reposition the TomeBoy frame and button controls on screen.
@@ -117,8 +132,8 @@ const sprintSpeedMultiplier = 1.8;
 const TB_NATIVE      = 480;
 const TB_HOLE_CX     = 239.5;
 const TB_HOLE_CY     = 235.0;
-const TB_HOLE_HALF_W = 97.5;
-const TB_HOLE_HALF_H = 80.0;
+const TB_HOLE_HALF_W = 18.75;
+const TB_HOLE_HALF_H = 16.00;
 
 function getTomeboySize() {
     const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 2.8;
@@ -209,6 +224,7 @@ if (player) player.src = frames[0];
 const squareEls    = Array.from(document.querySelectorAll('.game-square'));
 const squareStates = {};    // keyed by element id
 const dialogueConfig = {};  // keyed by element id — populated from data-* below
+let npcSpawnPositionsValidated = false;
 
 function randRange(min, max) { return Math.random() * (max - min) + min; }
 
@@ -535,9 +551,44 @@ actionBtn?.addEventListener('click', handleAction);
 
 function updateSquares(dt) {
     if (!arena) return;
+
+    if (!npcSpawnPositionsValidated && hitboxReady) {
+        for (const id of Object.keys(squareStates)) {
+            const s = squareStates[id];
+            const spriteSize = Math.max(s.el.offsetWidth || 0, s.el.offsetHeight || 0)
+                || parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
+            if (spriteSize <= 0) continue;
+            const spawn = findNearestValidPosition(s.x, s.y, spriteSize);
+            const clamped = clampToArena(spawn.x, spawn.y, spriteSize);
+            s.x = clamped.x;
+            s.y = clamped.y;
+            s.el.style.left = `${Math.round(s.x)}px`;
+            s.el.style.top  = `${Math.round(s.y)}px`;
+        }
+        npcSpawnPositionsValidated = true;
+    }
+
     for (const id of Object.keys(squareStates)) {
         const s  = squareStates[id];
         const el = s.el;
+        const spriteSize = Math.max(el.offsetWidth || 0, el.offsetHeight || 0);
+
+        if (spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
+            const unstuck = findNearestValidPosition(s.x, s.y, spriteSize);
+            const clamped = clampToArena(unstuck.x, unstuck.y, spriteSize);
+            s.x = clamped.x;
+            s.y = clamped.y;
+            s.state = 'idle';
+            s.dirX = 0;
+            s.dirY = 0;
+            s.timerMs = randRange(500, 1400);
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img) s.img.src = s.frames[0];
+            el.style.left = `${Math.round(s.x)}px`;
+            el.style.top  = `${Math.round(s.y)}px`;
+        }
 
         // ── Interaction pause ───────────────────────────────────────────────
         if (s.interactedPaused) {
@@ -811,22 +862,21 @@ function vpToArena(vpX, vpY) {
 
 // Find the nearest non-blocked position within a search radius
 function findNearestValidPosition(arenaX, arenaY, spriteSize) {
-    const offset = COLLISION_FEET_OFFSET;
+    const origin = clampToArena(arenaX, arenaY, spriteSize);
     function clear(px, py) {
-        return !isBlockedAt(px + spriteSize * 0.2, py + spriteSize - offset)
-            && !isBlockedAt(px + spriteSize * 0.5, py + spriteSize - offset)
-            && !isBlockedAt(px + spriteSize * 0.8, py + spriteSize - offset);
+        const clamped = clampToArena(px, py, spriteSize);
+        return !isSpriteFeetBlocked(clamped.x, clamped.y, spriteSize);
     }
-    if (clear(arenaX, arenaY)) return { x: arenaX, y: arenaY };
+    if (clear(origin.x, origin.y)) return origin;
     // Spiral search outward in steps
     for (let radius = 4; radius <= 120; radius += 4) {
         for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
-            const tx = arenaX + Math.cos(angle) * radius;
-            const ty = arenaY + Math.sin(angle) * radius;
-            if (clear(tx, ty)) return { x: tx, y: ty };
+            const tx = origin.x + Math.cos(angle) * radius;
+            const ty = origin.y + Math.sin(angle) * radius;
+            if (clear(tx, ty)) return clampToArena(tx, ty, spriteSize);
         }
     }
-    return { x: arenaX, y: arenaY }; // give up, return original
+    return origin; // give up, return original
 }
 
 function isInsideScreenHole(vpX, vpY) {
@@ -865,17 +915,13 @@ function onDragPointerMove(e) {
     const vpX = e.clientX;
     const vpY = e.clientY;
 
-    // Auto-drop if cursor leaves the screen hole
-    if (!isInsideScreenHole(vpX, vpY)) { dropDragged(); return; }
-
     const pos    = vpToArena(vpX, vpY);
     const arenaX = pos.x - dragState.offsetX;
     const arenaY = pos.y - dragState.offsetY;
     const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
-    const maxX = (arena?.clientWidth  || 9999) - spriteSize;
-    const maxY = (arena?.clientHeight || 9999) - spriteSize;
-    const clampedX = Math.max(0, Math.min(arenaX, maxX));
-    const clampedY = Math.max(0, Math.min(arenaY, maxY));
+    const clamped = clampToArena(arenaX, arenaY, spriteSize);
+    const clampedX = clamped.x;
+    const clampedY = clamped.y;
 
     if (dragState.type === 'player') {
         currentX = clampedX;
@@ -968,6 +1014,7 @@ let prevPlayerY = currentY;
 
 // How many pixels ahead of the player the camera looks
 const CAMERA_LOOKAHEAD = 80;   // px — tweak this
+const CAMERA_TRIGGER_MARGIN = 90; 
 const CAMERA_LERP      = 10;   // smoothing — lower = smoother but more lag
 
 function updateCamera(dt) {
@@ -1018,15 +1065,16 @@ function updateCamera(dt) {
     const dxView = playerVpX - hole.cx;
     const dyView = playerVpY - hole.cy;
 
-    const outsideX = Math.abs(dxView) > hole.halfW;
-    const outsideY = Math.abs(dyView) > hole.halfH;
+    const softHalfW = hole.halfW - CAMERA_TRIGGER_MARGIN;
+    const softHalfH = hole.halfH - CAMERA_TRIGGER_MARGIN;
+
+    const outsideX = Math.abs(dxView) > softHalfW;
+    const outsideY = Math.abs(dyView) > softHalfH;
 
     if (outsideX || outsideY) {
-        // Player has hit the boundary — scroll exactly enough to bring them back in,
-        // plus a lookahead nudge in the direction they're moving
-        if (outsideX) cameraTargetX += (Math.abs(dxView) - hole.halfW) * Math.sign(dxView)
+        if (outsideX) cameraTargetX += (Math.abs(dxView) - softHalfW) * Math.sign(dxView)
                                      + playerVelX * dt * CAMERA_LOOKAHEAD * 0.016;
-        if (outsideY) cameraTargetY += (Math.abs(dyView) - hole.halfH) * Math.sign(dyView)
+        if (outsideY) cameraTargetY += (Math.abs(dyView) - softHalfH) * Math.sign(dyView)
                                      + playerVelY * dt * CAMERA_LOOKAHEAD * 0.016;
     }
 
@@ -1107,19 +1155,13 @@ function loop(timestamp) {
 
         // Check three points across the bottom of the sprite for solid collision
         function blockedX(px) {
-            return isBlockedAt(px + playerSize * 0.2, currentY + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(px + playerSize * 0.5, currentY + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(px + playerSize * 0.8, currentY + playerSize - COLLISION_FEET_OFFSET);
+            return isSpriteFeetBlocked(px, currentY, playerSize);
         }
         function blockedY(py) {
-            return isBlockedAt(currentX + playerSize * 0.2, py + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(currentX + playerSize * 0.5, py + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(currentX + playerSize * 0.8, py + playerSize - COLLISION_FEET_OFFSET);
+            return isSpriteFeetBlocked(currentX, py, playerSize);
         }
         function blockedXY(px, py) {
-            return isBlockedAt(px + playerSize * 0.2, py + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(px + playerSize * 0.5, py + playerSize - COLLISION_FEET_OFFSET)
-                || isBlockedAt(px + playerSize * 0.8, py + playerSize - COLLISION_FEET_OFFSET);
+            return isSpriteFeetBlocked(px, py, playerSize);
         }
 
         if (!blockedXY(nextX, nextY)) {

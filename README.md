@@ -28,3 +28,4 @@ The set rules which the website is planned to be run by.
 9. The player will start with three inputs, directional keys and buttons to move, and interact button (A button), and a sprint button (B button). They may later get other button by unlocking secrets in the website.
 10. User's can click and drag things around the screen, matching the scroll.
 
+Next I'm trying to add NPC's, so firstly, I got an AI to write some basic code to make some squares move around screen, occassionally stopping and idling. Next 

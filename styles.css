@@ -39,8 +39,8 @@
   */
   --control-size: clamp(15px, 7.5vw, 20px);
 
-  --worldWidth:  1900px;
-  --worldHeight: 1900px;
+  --worldWidth:  4480px;
+  --worldHeight: 4480px;
 }
 
 /* =============================================================================
@@ -183,8 +183,8 @@ body {
   display: block;
   /* Native sprite is 480×480. Scale it by ctrl-scale so it matches
      the button sprite's pixel density. Width = height always (square). */
-  width:  calc(960px * var(--ctrl-scale) / 2);
-  height: calc(960px * var(--ctrl-scale) / 2);
+  width:  calc(3840px * var(--ctrl-scale) / 2);
+  height: calc(3840px * var(--ctrl-scale) / 2);
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none;

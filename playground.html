@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NPC Playground</title>
+  <link rel="stylesheet" href="playground.css">
+</head>
+<body>
+  <div id="arena" class="arena" aria-label="Play area">
+    <img src="Assets/Tomer'sWebsiteTempWorld3.png.png" class="world-map" alt="">
+    <img id="world-hitbox" src="Assets/Mobile/MobileHitbox.png.png" alt="" hidden>
+    <canvas id="hitbox-canvas" hidden></canvas>
+
+    <div class="game-square" id="guide"
+      data-x="1260" data-y="1520"
+      data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+      data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+      data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+      data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+      data-can-move="true"
+      data-dialogue-mode="sequence"
+      data-dialogue="Welcome to the new page! || This uses the same NPC data settings as index.html.">
+    </div>
+
+    <div class="game-square" id="merchant"
+      data-x="1760" data-y="1320"
+      data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+      data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+      data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+      data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+      data-can-move="false"
+      data-dialogue-mode="random"
+      data-dialogue="Need supplies? || Everything is data-driven here.">
+    </div>
+
+    <div class="game-square" id="chicken"
+      data-x="2120" data-y="1380"
+      data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
+      data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
+      data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
+      data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
+      data-can-move="true"
+      data-dialogue-mode="random"
+      data-dialogue="Bawk! || Chirp! || Bakaw!">
+    </div>
+
+    <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player">
+  </div>
+
+  <div id="dialogueBox" class="dialogue-box" hidden>
+    <div class="dialogue-panel">
+      <strong id="dialogueName"></strong>
+      <p id="dialogueText"></p>
+    </div>
+  </div>
+
+  <div id="tomeboy-frame" class="tomeboy-frame" aria-hidden="true">
+    <img src="Assets/WebsiteTomeBoySprite.png.png" class="tomeboy-sprite" alt="">
+  </div>
+
+  <div id="button-controls" class="button-controls" aria-label="On-screen controls">
+    <div class="controller-wrap">
+      <img src="Assets/WebsiteGameBoyButton.png.png" class="controller-sprite" alt="Controller" draggable="false">
+      <button type="button" id="upBtn"    class="ctrl-hit dpad-hit up"    aria-label="Move up"></button>
+      <button type="button" id="leftBtn"  class="ctrl-hit dpad-hit left"  aria-label="Move left"></button>
+      <button type="button" id="rightBtn" class="ctrl-hit dpad-hit right" aria-label="Move right"></button>
+      <button type="button" id="downBtn"  class="ctrl-hit dpad-hit down"  aria-label="Move down"></button>
+      <button type="button" id="actionBtn" class="ctrl-hit action-hit a-btn" aria-label="Interact"></button>
+      <button type="button" id="sprintBtn" class="ctrl-hit action-hit b-btn" aria-pressed="false" aria-label="Sprint"></button>
+    </div>
+  </div>
+
+  <script src="playground.js"></script>
+</body>
+</html>

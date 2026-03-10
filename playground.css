@@ -1,0 +1,171 @@
+:root {
+  --playerSize: 20px;
+  --arenaWidth: 100vw;
+  --arenaHeight: 100vh;
+  --worldWidth: 640px;
+  --worldHeight: 640px;
+  --worldCenterOffsetX: -640px;
+  --worldOffsetY: -640px;
+  --ctrl-scale: 1.3;
+
+  --tomeboy-offset-x: 0px;
+  --tomeboy-offset-y: -100px;
+  --controls-offset-x: 0px;
+  --controls-offset-y: 110px;
+
+  --dialogueOverlayInset: 0px;
+  --dialogueBoxLeft: 80px;
+  --dialogueBoxTop: 95px;
+  --dialogueBoxWidth: 65vw;
+  --dialogueBoxHeight: 38vh;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #a096eb;
+  color: #15267a;
+  overflow: hidden;
+}
+
+.arena {
+  position: fixed;
+  inset: 0;
+  width: var(--arenaWidth);
+  height: var(--arenaHeight);
+  overflow: hidden;
+  background: transparent;
+}
+
+.world-map {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--worldWidth);
+  height: var(--worldHeight);
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.game-square {
+  position: absolute;
+  width: var(--playerSize);
+  height: var(--playerSize);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.game-square.highlight {
+  outline: 4px solid rgba(255, 212, 122, 0.9);
+  border-radius: 8px;
+}
+
+.npc-sprite {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  transform: scaleX(var(--npcFlip, 1));
+}
+
+.player-sprite {
+  position: absolute;
+  width: var(--playerSize);
+  height: var(--playerSize);
+  image-rendering: pixelated;
+  transform: scaleX(var(--playerFlip, 1));
+  z-index: 20;
+}
+
+.dialogue-box {
+  position: fixed;
+  inset: var(--dialogueOverlayInset);
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 11000;
+}
+
+.dialogue-panel {
+  position: absolute;
+  left: var(--dialogueBoxLeft);
+  top: var(--dialogueBoxTop);
+  width: var(--dialogueBoxWidth);
+  height: var(--dialogueBoxHeight);
+  border: 1px solid rgba(21, 38, 122, 0.3);
+  border-radius: 0;
+  background: rgba(255,255,255,0.9);
+  padding: 20px;
+  overflow: auto;
+}
+
+.dialogue-box p {
+  margin: 8px 0 0;
+  white-space: pre-line;
+}
+
+.tomeboy-frame {
+  position: fixed;
+  z-index: 9000;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translate(var(--tomeboy-offset-x), var(--tomeboy-offset-y));
+  pointer-events: none;
+}
+
+.tomeboy-sprite {
+  display: block;
+  width: calc(480px * var(--ctrl-scale));
+  height: calc(480px * var(--ctrl-scale));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.button-controls {
+  position: fixed;
+  z-index: 12000;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translate(var(--controls-offset-x), var(--controls-offset-y));
+  pointer-events: all;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: block;
+}
+
+.controller-wrap {
+  position: relative;
+  width: calc(160px * var(--ctrl-scale));
+  height: calc(100px * var(--ctrl-scale));
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.controller-sprite {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+.ctrl-hit {
+  position: absolute;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-hit.up    { left: 27.5%; top: 23%; width: 10%; height: 17%; }
+.dpad-hit.down  { left: 27.5%; top: 60%; width: 10%; height: 17%; }
+.dpad-hit.left  { left: 14%;   top: 42%; width: 13%; height: 17%; }
+.dpad-hit.right { left: 43%;   top: 42%; width: 13%; height: 17%; }
+
+.action-hit.a-btn { left: 73%; top: 34%; width: 12%; height: 22%; }
+.action-hit.b-btn { left: 60%; top: 44%; width: 12%; height: 22%; }
