@@ -1,11 +1,13 @@
 :root {
-  --playerSize: 20px;
+  --playerSize: 12px;
   --arenaWidth: 100vw;
-  --arenaHeight: 100vh;
-  --worldWidth: 640px;
-  --worldHeight: 640px;
-  --worldCenterOffsetX: -640px;
-  --worldOffsetY: -640px;
+  --arenaHeight: 90vh;
+  --arena-offset-x: 0px;
+  --arena-offset-y: 0px;
+  --worldWidth: 340px;
+  --worldHeight: 290px;
+  --worldCenterOffsetX: -2px;
+  --worldOffsetY: -100px;
   --ctrl-scale: 1.3;
 
   --tomeboy-offset-x: 0px;
@@ -14,10 +16,23 @@
   --controls-offset-y: 110px;
 
   --dialogueOverlayInset: 0px;
-  --dialogueBoxLeft: 80px;
-  --dialogueBoxTop: 95px;
-  --dialogueBoxWidth: 65vw;
-  --dialogueBoxHeight: 38vh;
+  --dialogueBoxLeft: 100px;
+  --dialogueBoxTop: 71px;
+  --dialogueBoxWidth: 35vw;
+  --dialogueBoxHeight: 40vh;
+
+  --dialogueBoxXScale: 0.1;
+  --dialogueBoxWidthScale: 0.45;  
+  /* For some reason there are three variables to set dialogue width */
+
+  --dialogueBoxXOffset: 110px;
+  --dialogueBoxYScale: 0.10;
+  --dialogueBoxHeightScale: 0.35;
+  --dialogueBoxYOffset: 30px;
+  --dialogueBoxMinHeight: 60px;
+  --dialogueFontFamily:     arial, sans-serif;
+  --dialogueFontSize:       18px;
+  --dialogueVerticalOffset: 14px;
 }
 
 * { box-sizing: border-box; }
@@ -25,18 +40,20 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #a096eb;
-  color: #15267a;
+  background: #160839;
+  color: #595939;
   overflow: hidden;
 }
 
 .arena {
   position: fixed;
-  inset: 0;
+  left: 50%;
+  top: 50%;
   width: var(--arenaWidth);
   height: var(--arenaHeight);
   overflow: hidden;
   background: transparent;
+  transform: translate(-50%, -50%) translate(var(--arena-offset-x), var(--arena-offset-y));
 }
 
 .world-map {
@@ -59,7 +76,7 @@ body {
 }
 
 .game-square.highlight {
-  outline: 4px solid rgba(255, 212, 122, 0.9);
+  outline: 4px solid #caca81;
   border-radius: 8px;
 }
 
@@ -83,7 +100,7 @@ body {
 .dialogue-box {
   position: fixed;
   inset: var(--dialogueOverlayInset);
-  background: rgba(0, 0, 0, 0.35);
+  background: transparent;
   z-index: 11000;
 }
 
@@ -93,15 +110,17 @@ body {
   top: var(--dialogueBoxTop);
   width: var(--dialogueBoxWidth);
   height: var(--dialogueBoxHeight);
-  border: 1px solid rgba(21, 38, 122, 0.3);
+  border: 1px solid #515133;
   border-radius: 0;
-  background: rgba(255,255,255,0.9);
+  background: #b2b272;
   padding: 20px;
   overflow: auto;
 }
 
-.dialogue-box p {
+.dialogue-box {
   margin: 8px 0 0;
+  font-family: var(--dialogueFontFamily);
+  font-size: var(--dialogueFontSize);
   white-space: pre-line;
 }
 
@@ -167,5 +186,5 @@ body {
 .dpad-hit.left  { left: 14%;   top: 42%; width: 13%; height: 17%; }
 .dpad-hit.right { left: 43%;   top: 42%; width: 13%; height: 17%; }
 
-.action-hit.a-btn { left: 73%; top: 34%; width: 12%; height: 22%; }
-.action-hit.b-btn { left: 60%; top: 44%; width: 12%; height: 22%; }
+.action-hit.a-btn { left: 60%; top: 14%; width: 16%; height: 25%; }
+.action-hit.b-btn { left: 74%; top: 54%; width: 16%; height: 25%; }

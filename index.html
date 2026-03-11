@@ -19,6 +19,14 @@
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
+  <script>
+    (function () {
+      const MOBILE_VIEWPORT_HEIGHT_MIN = 700;
+      if (window.innerHeight >= MOBILE_VIEWPORT_HEIGHT_MIN) {
+        window.location.replace('playground.html');
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="zoom-root"> 
@@ -30,7 +38,6 @@
     <nav aria-label="Primary">
       <ul>
         <li><a href="#" aria-current="page">Home</a></li>
-        <li><a href="playground.html">NPC Playground</a></li>
       </ul>
     </nav>
 
@@ -172,7 +179,7 @@
             div.className = 'game-square';
             div.id = 'square5-' + (i + 1);
             div.setAttribute('data-x', randi(1000, 5000));
-            div.setAttribute('data-y', randi(1000, 5000));
+            div.setAttribute('data-y', randi(100, 5000));
             div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png.png");
             div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png.png");
             div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png.png");

@@ -5,47 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NPC Playground</title>
   <link rel="stylesheet" href="playground.css">
+  <link id="dialogue-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap">
+
 </head>
 <body>
   <div id="arena" class="arena" aria-label="Play area">
-    <img src="Assets/Tomer'sWebsiteTempWorld3.png.png" class="world-map" alt="">
-    <img id="world-hitbox" src="Assets/Mobile/MobileHitbox.png.png" alt="" hidden>
+    <img src="Assets/Mobile/Tomer'sWebsiteMobileMap.png.png" class="world-map" alt="">
+    <img id="world-hitbox" src="Assets/Mobile/Tomer'sWebsiteMobileHitbox1.png.png" alt="" hidden>
     <canvas id="hitbox-canvas" hidden></canvas>
 
     <div class="game-square" id="guide"
-      data-x="1260" data-y="1520"
-      data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-      data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-      data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-      data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+      data-x="85" data-y="-58"
+      data-idle-1="Assets/Mobile/MobileNPCIdle1.png.png"
+      data-idle-2="Assets/Mobile/MobileNPCIdle2.png.png"
+      data-walk-1="Assets/Mobile/MobileNPCWalk1.png"
+      data-walk-2="Assets/Mobile/MobileNPCWalk2.png"
       data-can-move="true"
       data-dialogue-mode="sequence"
       data-dialogue="Welcome to the new page! || This uses the same NPC data settings as index.html.">
     </div>
 
     <div class="game-square" id="merchant"
-      data-x="1760" data-y="1320"
-      data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
-      data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
-      data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
-      data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+      data-x="19" data-y="-203"
+      data-idle-1="Assets/Mobile/MobileNPCIdle1.png.png"
+      data-idle-2="Assets/Mobile/MobileNPCIdle2.png.png"
+      data-walk-1="Assets/Mobile/MobileNPCWalk1.png"
+      data-walk-2="Assets/Mobile/MobileNPCWalk2.png"
       data-can-move="false"
       data-dialogue-mode="random"
       data-dialogue="Need supplies? || Everything is data-driven here.">
     </div>
 
     <div class="game-square" id="chicken"
-      data-x="2120" data-y="1380"
-      data-idle-1="Assets/Tomer'sWebsiteChickenIdle1.png.png"
-      data-idle-2="Assets/Tomer'sWebsiteChickenIdle2.png.png"
-      data-walk-1="Assets/Tomer'sWebsiteChickenWalk1.png.png"
-      data-walk-2="Assets/Tomer'sWebsiteChickenWalk2.png.png"
+      data-x="-150" data-y="-140"
+      data-idle-1="Assets/Mobile/MobileChicken.png"
+      data-idle-2="Assets/Mobile/MobileChicken.png"
+      data-walk-1="Assets/Mobile/MobileChicken.png"
+      data-walk-2="Assets/Mobile/MobileChicken.png"
       data-can-move="true"
       data-dialogue-mode="random"
       data-dialogue="Bawk! || Chirp! || Bakaw!">
     </div>
 
-    <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player">
+    <img id="player" class="player-sprite" src="Assets/Mobile/MobilePlayerIdle1.png.png" alt="Player">
   </div>
 
   <div id="dialogueBox" class="dialogue-box" hidden>

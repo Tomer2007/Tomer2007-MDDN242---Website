@@ -28,4 +28,10 @@ The set rules which the website is planned to be run by.
 9. The player will start with three inputs, directional keys and buttons to move, and interact button (A button), and a sprint button (B button). They may later get other button by unlocking secrets in the website.
 10. User's can click and drag things around the screen, matching the scroll.
 
-Next I'm trying to add NPC's, so firstly, I got an AI to write some basic code to make some squares move around screen, occassionally stopping and idling. Next 
+Next I'm trying to add NPC's, so firstly, I got an AI to write some basic code to make some squares move around screen, occassionally stopping and idling. This worked pretty well quickly, so then asked AI to add the interaction between square and player which caused some issues.
+Mainly there was an issue where the player wouldn't be able to interact the NPC's at all, then the problem where the player would only interact from certain angles, then the problems where the dialogue would appear too big or even behind the player.
+
+Fortunately after a lot of debugging, I was able to solve all of these issues so the text will appear at the top left of the NPC, which can be interacted from any direction. I also made it freeze the NPC in place when being interacted with, forcing it to idle so it doesn't walk away when the player is talking to it.
+
+Now I want to fix the onscreen buttons to be more in theme, so I'm going to get the AI to reposition them in a more standard controller layout based on image reference.
+This has worked pretty well, but there are some problems when it comes to the mobile version, so I'm going to 

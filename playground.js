@@ -10,8 +10,10 @@ const rightBtn = document.getElementById('rightBtn');
 const upBtn = document.getElementById('upBtn');
 const downBtn = document.getElementById('downBtn');
 const dialogueBox = document.getElementById('dialogueBox');
+const dialoguePanel = dialogueBox?.querySelector('.dialogue-panel') || null;
 const dialogueName = document.getElementById('dialogueName');
 const dialogueText = document.getElementById('dialogueText');
+const tomeboyFrame = document.getElementById('tomeboy-frame');
 
 const hitboxCanvas = document.getElementById('hitbox-canvas');
 const hitboxCtx = hitboxCanvas ? hitboxCanvas.getContext('2d', { willReadFrequently: true }) : null;
@@ -22,7 +24,7 @@ let worldMapOffsetX = 0;
 let worldMapOffsetY = 0;
 let worldMapPixelWidth = 0;
 let worldMapPixelHeight = 0;
-const COLLISION_FEET_OFFSET = 10;
+const COLLISION_FEET_OFFSET = 2;
 
 function parsePx(value) {
   const n = parseFloat(String(value || '').trim());
@@ -43,14 +45,40 @@ function updateWorldPlacement() {
   const centerOffsetX = getVar('--worldCenterOffsetX', 0);
   const offsetY = getVar('--worldOffsetY', 120);
 
+
+  const centeredY = window.innerHeight / 2 - arenaRect.top - worldHeight / 2 + offsetY;
   const centeredX = window.innerWidth / 2 - arenaRect.left - worldWidth / 2 + centerOffsetX;
   worldMapOffsetX = Math.round(centeredX);
-  worldMapOffsetY = Math.round(offsetY);
+  worldMapOffsetY = Math.round(centeredY);
   worldMapPixelWidth = worldWidth;
   worldMapPixelHeight = worldHeight;
 
   worldMapEl.style.left = `${worldMapOffsetX}px`;
   worldMapEl.style.top = `${worldMapOffsetY}px`;
+}
+
+function updateDialogueLayoutFromTomeboy() {
+  if (!dialoguePanel || !tomeboyFrame) return;
+  const rect = tomeboyFrame.getBoundingClientRect();
+  if (!rect.width) return;
+
+  const xScale = getVar('--dialogueBoxXScale', 0.15);
+  const widthScale = getVar('--dialogueBoxWidthScale', 0.70);
+  const xOffset = getVar('--dialogueBoxXOffset', 0);
+  const yScale = getVar('--dialogueBoxYScale', 0.10);
+  const heightScale = getVar('--dialogueBoxHeightScale', 0.40);
+  const yOffset = getVar('--dialogueBoxYOffset', 0);
+  const minHeight = getVar('--dialogueBoxMinHeight', 120);
+
+  const leftPx = rect.left + rect.width * xScale + xOffset;
+  const widthPx = Math.max(40, rect.width * widthScale);
+  const topPx = window.innerHeight * yScale + yOffset;
+  const heightPx = Math.max(minHeight, window.innerHeight * heightScale);
+
+  dialoguePanel.style.left = `${Math.round(leftPx)}px`;
+  dialoguePanel.style.width = `${Math.round(widthPx)}px`;
+  dialoguePanel.style.top = `${Math.round(topPx)}px`;
+  dialoguePanel.style.height = `${Math.round(heightPx)}px`;
 }
 
 function isBlockedAt(arenaX, arenaY) {
@@ -109,13 +137,13 @@ if (worldHitboxImg && hitboxCtx) {
 }
 
 const idleFrames = [
-  "Assets/Tomer'sWebsitePlayerIdle1.png.png",
-  "Assets/Tomer'sWebsitePlayerIdle2.png.png"
+  "Assets/Mobile/MobilePlayerIdle1.png.png",
+  "Assets/Mobile/MobilePlayerIdle2.png.png"
 ];
 
 const walkFrames = [
-  "Assets/Tomer'sWebsitePlayerWalk1.png.png",
-  "Assets/Tomer'sWebsitePlayerWalk2.png.png"
+  "Assets/Mobile/MobilePlayerWalk1.png.png",
+  "Assets/Mobile/MobilePlayerWalk2.png.png"
 ];
 
 const pressed = { left: false, right: false, up: false, down: false };
@@ -125,11 +153,11 @@ let lastDirection = 'right';
 let frameIndex = 0;
 let frameElapsedMs = 0;
 let currentFrames = idleFrames;
-let currentX = 380;
-let currentY = 430;
+let currentX = 0;
+let currentY = 0;
 
-const baseSpeedPxPerSecond = 200;
-const sprintSpeedMultiplier = 1.8;
+const baseSpeedPxPerSecond = 20;
+const sprintSpeedMultiplier = 2.4;
 const animationFps = 5;
 
 const squareEls = Array.from(document.querySelectorAll('.game-square'));
@@ -142,8 +170,8 @@ function randRange(min, max) {
 
 for (const el of squareEls) {
   const id = el.id || `sq-${Math.random().toString(36).slice(2, 8)}`;
-  const x = parseFloat(el.dataset.x) || 0;
-  const y = parseFloat(el.dataset.y) || 0;
+  const spawnOffsetX = parseFloat(el.dataset.x) || 0;
+  const spawnOffsetY = parseFloat(el.dataset.y) || 0;
   const canMove = (el.dataset.canMove ?? 'true') !== 'false';
   const mode = el.dataset.dialogueMode || 'sequence';
   const lines = (el.dataset.dialogue || '').split('||').map(s => s.trim()).filter(Boolean);
@@ -175,14 +203,16 @@ for (const el of squareEls) {
   squareStates[id] = {
     id,
     el,
-    x,
-    y,
+    x: 0,
+    y: 0,
+    spawnOffsetX,
+    spawnOffsetY,
     canMove,
     state: 'idle',
     timerMs: randRange(500, 1500),
     dirX: 0,
     dirY: 0,
-    speed: randRange(25, 60),
+    speed: randRange(15, 30),
     framesIdle,
     framesWalk,
     frames: framesIdle,
@@ -193,8 +223,18 @@ for (const el of squareEls) {
   };
 
   img.src = framesIdle[0];
-  el.style.left = `${Math.round(x)}px`;
-  el.style.top = `${Math.round(y)}px`;
+  el.style.left = `0px`;
+  el.style.top = `0px`;
+}
+
+function setDialogueFont(url, fontFamily) {
+    if (!url || !fontFamily) return;
+    const linkId = 'dialogue-font-link' + btoa(url).replace(/=/g, '');
+    if (!document.getElementById(linkId)) {
+        const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: url, id: linkId });
+        document.head.appendChild(link);
+    }
+    root.style.setProperty('--dialogueFontFamily', fontFamily);
 }
 
 function getNextDialogueText(id) {
@@ -241,6 +281,39 @@ function closeDialogueOnMove() {
   if (!dialogueBox.hidden) dialogueBox.hidden = true;
 }
 
+function forcePlayerOutOfWall() {
+  if (!hitboxReady) return;
+  const playerSize = getVar('--playerSize', 80);
+  if (!isSpriteFeetBlocked(currentX, currentY, playerSize)) return;
+  const unstuck = findNearestValidPosition(currentX, currentY, playerSize);
+  currentX = unstuck.x;
+  currentY = unstuck.y;
+}
+
+function applyCenterRelativeSpawns() {
+  const centerX = (arena?.clientWidth || 0) / 2;
+  const centerY = (arena?.clientHeight || 0) / 2;
+  const playerSize = getVar('--playerSize', 80);
+
+  currentX = centerX;
+  currentY = centerY;
+  const playerSpawn = findNearestValidPosition(currentX, currentY, playerSize);
+  currentX = playerSpawn.x;
+  currentY = playerSpawn.y;
+
+  for (const id of Object.keys(squareStates)) {
+    const s = squareStates[id];
+    const spriteSize = Math.max(s.el.offsetWidth || 0, s.el.offsetHeight || 0) || playerSize;
+    const spawnX = centerX + s.spawnOffsetX;
+    const spawnY = centerY + s.spawnOffsetY;
+    const valid = findNearestValidPosition(spawnX, spawnY, spriteSize);
+    s.x = valid.x;
+    s.y = valid.y;
+    s.el.style.left = `${Math.round(s.x)}px`;
+    s.el.style.top = `${Math.round(s.y)}px`;
+  }
+}
+
 function updateNPCs(dt) {
   for (const id of Object.keys(squareStates)) {
     const s = squareStates[id];
@@ -269,7 +342,7 @@ function updateNPCs(dt) {
           const ang = randRange(0, Math.PI * 2);
           s.dirX = Math.cos(ang);
           s.dirY = Math.sin(ang);
-          s.speed = randRange(20, 60);
+          s.speed = randRange(15, 25);
           s.frames = s.framesWalk;
         } else {
           s.state = 'idle';
@@ -431,6 +504,28 @@ document.addEventListener('keyup', (e) => {
 
 actionBtn?.addEventListener('click', handleAction);
 
+function applyDialogueFontFromLink() {
+    const link = document.getElementById('dialogue-font-link');
+    const href = (link?.getAttribute('href') || '').trim();
+    if (!href) return;
+    try {
+        const params   = new URLSearchParams(new URL(href, location.href).search);
+        const families = params.getAll('family').map(v => `"${v.split(':')[0].replace(/\+/g, ' ').trim()}"`);
+        root.style.setProperty('--dialogueFontFamily', families.length ? families.join(', ') + ', sans-serif' : 'sans-serif');
+    } catch (err) {
+        console.debug('Could not parse dialogue font link:', err);
+    }
+}
+
+applyDialogueFontFromLink();
+const _fontLink = document.getElementById('dialogue-font-link');
+if (_fontLink) {
+    _fontLink.addEventListener('load', applyDialogueFontFromLink);
+    new MutationObserver(muts => {
+        if (muts.some(m => m.attributeName === 'href')) applyDialogueFontFromLink();
+    }).observe(_fontLink, { attributes: true });
+}
+
 let spawnValidated = false;
 let lastTime = null;
 
@@ -440,19 +535,7 @@ function loop(timestamp) {
   lastTime = timestamp;
 
   if (!spawnValidated && hitboxReady) {
-    const playerSize = getVar('--playerSize', 80);
-    const p = findNearestValidPosition(currentX, currentY, playerSize);
-    currentX = p.x;
-    currentY = p.y;
-    for (const id of Object.keys(squareStates)) {
-      const s = squareStates[id];
-      const spriteSize = Math.max(s.el.offsetWidth || 0, s.el.offsetHeight || 0) || playerSize;
-      const valid = findNearestValidPosition(s.x, s.y, spriteSize);
-      s.x = valid.x;
-      s.y = valid.y;
-      s.el.style.left = `${Math.round(s.x)}px`;
-      s.el.style.top = `${Math.round(s.y)}px`;
-    }
+    applyCenterRelativeSpawns();
     spawnValidated = true;
   }
 
@@ -482,6 +565,8 @@ function loop(timestamp) {
     }
   }
 
+  forcePlayerOutOfWall();
+
   const moving = dx !== 0 || dy !== 0;
   const targetFrames = moving ? walkFrames : idleFrames;
   if (targetFrames !== currentFrames) {
@@ -508,5 +593,9 @@ function loop(timestamp) {
 
 placePlayer();
 updateWorldPlacement();
-window.addEventListener('resize', updateWorldPlacement);
+updateDialogueLayoutFromTomeboy();
+window.addEventListener('resize', () => {
+  updateWorldPlacement();
+  updateDialogueLayoutFromTomeboy();
+});
 requestAnimationFrame(loop);
