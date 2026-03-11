@@ -21,8 +21,8 @@
   </style>
   <script>
     (function () {
-      const MOBILE_VIEWPORT_HEIGHT_MIN = 850;
-      if (window.innerHeight >= MOBILE_VIEWPORT_HEIGHT_MIN) {
+      const MOBILE_VIEWPORT_WIDTH_MAX = 850;
+      if (window.innerWidth <= MOBILE_VIEWPORT_WIDTH_MAX) {
         window.location.replace('playground.html');
       }
     })();
