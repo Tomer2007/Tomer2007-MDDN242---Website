@@ -35,3 +35,5 @@ Fortunately after a lot of debugging, I was able to solve all of these issues so
 
 Now I want to fix the onscreen buttons to be more in theme, so I'm going to get the AI to reposition them in a more standard controller layout based on image reference.
 This has worked pretty well, but there are some problems when it comes to the mobile version, so I'm going to 
+
+(still working on the read me so it's not fully updated)
