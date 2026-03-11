@@ -128,7 +128,7 @@
             data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
             data-can-move="true"
             data-dialogue-mode="sequence"
-            data-dialogue="Hello — this is Square 1. || Hello — still Square 1. /n {link:Google|https://google.com} || Hello — really still Square 1.">
+            data-dialogue="Hello — this is Square 1. || I mean this is NPC 1 || Or was it NPC 2 or 3? || We all look the same. || Anyway, this is Chicken 13 signing off. || (if i could make him turn into a chicken i would /n stay tuned for more updates)">
         </div>
 
         <!-- NPC 2 — wandering, random dialogue -->
@@ -139,20 +139,20 @@
             data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
             data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
             data-can-move="true"
-            data-dialogue-mode="random"
-            data-dialogue="Square 2 says: welcome /n to the demo! || Square 2 says: second line.">
+            data-dialogue-mode="sequence"
+            data-dialogue="Oh, hey. Welcome to the world. || Sorry there isn't really much to do yet. || What are you looking at me like that for? || It's not like I can just make things for /n for you to do. || ... || Fine you really want something to do? || Then here you go. {link:Click here|https://www.google.com/fbx?fbx=snake_arcade} || Knock yourself out, It's not like /n your gonna beat my score of 3 anyway.">
         </div>
 
         <!-- NPC 3 — stationary, sequence dialogue with an image token -->
         <div class="game-square" id="square3"
-            data-x="1400" data-y="1100"
+            data-x="3800" data-y="3000"
             data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
             data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
             data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
             data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
-            data-can-move="false"
+            data-can-move="true"
             data-dialogue-mode="sequence"
-            data-dialogue="Square 3: easy to edit in the HTML. {img:Assets/ButtonLayout.png|120} || Square 3: another response.">
+            data-dialogue="Hey look at this weird image I found in the files. {img:Assets/ButtonLayout.png|120} || Weird, right? || Oh and I found another one... /n just let me grab it... || Look at that I wonder what it is. {img:Assets/Mobile/MobileNPCIdle1.png.png|120}|| Anyway that's all I got. /n Now scram.">
         </div>
 
         <!-- NPC 4 — wandering, random dialogue -->
@@ -166,6 +166,39 @@
             data-dialogue-mode="random"
             data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! || AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
         </div>
+
+        <div class="game-square" id="square6"
+            data-x="2650" data-y="2100"
+            data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+            data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+            data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+            data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+            data-can-move="false"
+            data-dialogue-mode="sequence"
+            data-dialogue="Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya.">
+        </div>
+
+        <div class="game-square" id="square7"
+            data-x="3750" data-y="3600"
+            data-idle-1="Assets/Mobile/MobileChicken.png"
+            data-idle-2="Assets/Mobile/MobileChicken.png"
+            data-walk-1="Assets/Mobile/MobileChicken.png"
+            data-walk-2="Assets/Mobile/MobileChicken.png"
+            data-can-move="true"
+            data-dialogue-mode="sequence"
+            data-dialogue="BAAAKAAWWW!!!!! || I Don't Think I'm Meant /n To Be Here || Why Are there KeyBoard Inputs?! || Im Scared || Please Just Take Me Back to the Mobile Version || I feel out of place || Bakaw... ||BAAAAWWWWWKKKKKKK!!!!!!! /n chirp chirp /n BAAAAAAAAKKKKKKAAAAAAAWWWWWW!!!!!!!">
+        </div>
+
+        <div class="game-square" id="square8"
+          data-x="3850" data-y="2100"
+          data-idle-1="Assets/WebsiteNPC1Idle1.png.png"
+          data-idle-2="Assets/WebsiteNPC1Idle2.png.png"
+          data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
+          data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
+          data-can-move="true"
+          data-dialogue-mode="sequence"
+          data-dialogue="It is I, the ghost of /n Projects Past || Welcome to my halls. || Do you want to see some past projects? || Well Here You Go! || {link:Horse Empire|https://groganisntreal.itch.io/horse-empire} is an immersive /n horse security simulator, /n based on games like Papers Please. /n It was made in 3 days for the Mini Game Jam 205, /n it proudly placed 77th which is pretty good /n for being made with in 1 week of using Godot. || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
+      </div>
 
         <!-- NPC 4 — wandering, random dialogue -->
         <script>

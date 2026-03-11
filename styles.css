@@ -31,8 +31,8 @@
   --playerFlip:  1;
   --playerScale: 1;
   
-  --buttonX:     1600px; /* not buttons location but player */
-  --buttonY:     1600px;
+  --buttonX:     2650px; /* not buttons location but player */
+  --buttonY:     2300px;
   /* if isMobile {
      --control-size: clamp(60px, 7.5vw, 80px);
   }
@@ -51,7 +51,7 @@ body {
   margin: 0;
   padding: 40px;
   font-family: Arial, sans-serif;
-  background: #a096eb;
+  background: #1d1747;
   /* Zoom is applied here by script.js at runtime.
      A default of 1 ensures nothing breaks if JS hasn't run yet. */
   zoom: 1;
@@ -80,11 +80,11 @@ body {
 
 .arena {
   position: relative;
-  width: 16000px;
-  height: 16000px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));
+  width: 5600px;
+  height: 5600px;
+  background: linear-gradient(180deg, rgba(32, 21, 59, 0.03), rgba(0,0,0,0.02));
   border: 1px dashed rgba(0,0,0,0.06);
-  margin: 24px 0;
+  margin: 0px 0;
 }
 
 /* =============================================================================
