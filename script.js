@@ -221,12 +221,319 @@ if (player) player.src = frames[0];
 //  No changes to script.js are ever needed.
 // ---------------------------------------------------------------------------
 
+const CHICKEN_TOTAL_DEFAULT = 15;
+const CHICKEN_COOP_STORAGE_KEY = 'website.chickenCoopState.v1';
+const DEFAULT_COOP_AREA = { x: 1995, y: 3160, width: 265, height: 165 };
+let chickenCountSyncAccumulator = 0;
+
+function toFiniteNumber(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function roundChickenCount(value, fallback = 0) {
+    return Math.max(0, Math.round(toFiniteNumber(value, fallback)));
+}
+
+function getConfiguredCoopArea() {
+    const coopEl = document.getElementById('CoopArea');
+    const x = toFiniteNumber(coopEl?.dataset?.x, DEFAULT_COOP_AREA.x);
+    const y = toFiniteNumber(coopEl?.dataset?.y, DEFAULT_COOP_AREA.y);
+    const width = Math.max(1, toFiniteNumber(coopEl?.dataset?.width, DEFAULT_COOP_AREA.width));
+    const height = Math.max(1, toFiniteNumber(coopEl?.dataset?.height, DEFAULT_COOP_AREA.height));
+
+    if (coopEl) {
+        coopEl.style.position = 'absolute';
+        coopEl.style.left = `${Math.round(x)}px`;
+        coopEl.style.top = `${Math.round(y)}px`;
+        coopEl.style.width = `${Math.round(width)}px`;
+        coopEl.style.height = `${Math.round(height)}px`;
+        coopEl.style.pointerEvents = 'none';
+    }
+
+    const rect = { x, y, width, height };
+    window.CoopArea = rect;
+    return rect;
+}
+
+function isPointInsideRect(x, y, rect) {
+    return x >= rect.x && x <= rect.x + rect.width
+        && y >= rect.y && y <= rect.y + rect.height;
+}
+
+function clampChickenPair(inCoop, outOfCoop) {
+    const safeInCoop = roundChickenCount(inCoop, 0);
+    const safeOutOfCoop = roundChickenCount(outOfCoop, CHICKEN_TOTAL_DEFAULT);
+    return { inCoop: safeInCoop, outOfCoop: safeOutOfCoop };
+}
+
+function saveChickenState(inCoop, outOfCoop) {
+    const pair = clampChickenPair(inCoop, outOfCoop);
+    try {
+        localStorage.setItem(CHICKEN_COOP_STORAGE_KEY, JSON.stringify({
+            ChickensInCoop: pair.inCoop,
+            ChickensOutofCoop: pair.outOfCoop
+        }));
+    } catch (_err) {
+        // Ignore storage errors.
+    }
+}
+
+function loadChickenState() {
+    try {
+        const raw = localStorage.getItem(CHICKEN_COOP_STORAGE_KEY);
+        if (!raw) return { inCoop: 0, outOfCoop: CHICKEN_TOTAL_DEFAULT };
+        const parsed = JSON.parse(raw);
+        return clampChickenPair(parsed?.ChickensInCoop, parsed?.ChickensOutofCoop);
+    } catch (_err) {
+        return { inCoop: 0, outOfCoop: CHICKEN_TOTAL_DEFAULT };
+    }
+}
+
+function setChickenProgress(inCoop, outOfCoop, persist = true) {
+    const pair = clampChickenPair(inCoop, outOfCoop);
+    window.ChickensInCoop = pair.inCoop;
+    window.ChickensOutofCoop = pair.outOfCoop;
+    if (persist) saveChickenState(pair.inCoop, pair.outOfCoop);
+}
+
+function randInt(min, max) {
+    const low = Math.ceil(Math.min(min, max));
+    const high = Math.floor(Math.max(min, max));
+    return Math.floor(Math.random() * (high - low + 1)) + low;
+}
+
+function randomPointInCoopArea(rect) {
+    return {
+        x: randInt(rect.x, rect.x + Math.max(1, rect.width - 1)),
+        y: randInt(rect.y, rect.y + Math.max(1, rect.height - 1))
+    };
+}
+
+function randomPointOutsideCoopArea(rect) {
+    const minX = 1000;
+    const maxX = 5000;
+    const minY = 100;
+    const maxY = 5000;
+    for (let i = 0; i < 250; i++) {
+        const point = { x: randInt(minX, maxX), y: randInt(minY, maxY) };
+        if (!isPointInsideRect(point.x, point.y, rect)) return point;
+    }
+    return { x: maxX, y: maxY };
+}
+
+function createCoopChickenElement(id, x, y) {
+    const div = document.createElement('div');
+    div.className = 'game-square';
+    div.id = id;
+    div.setAttribute('data-chicken-flock', 'coop');
+    div.setAttribute('data-x', String(Math.round(x)));
+    div.setAttribute('data-y', String(Math.round(y)));
+    div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png.png");
+    div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png.png");
+    div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png.png");
+    div.setAttribute('data-walk-2', "Assets/Tomer'sWebsiteChickenWalk2.png.png");
+    div.setAttribute('data-night-idle1', 'Assets/Nighttime/WebsiteSleepingChicken1.png.png');
+    div.setAttribute('data-night-idle2', 'Assets/Nighttime/WebsiteSleepingChicken2.png.png');
+    div.setAttribute('data-night-idle3', 'Assets/Nighttime/WebsiteSleepingChicken3.png.png');
+    div.setAttribute('data-can-move', 'true');
+    div.setAttribute('data-dialogue-mode', 'random');
+    div.setAttribute('data-night-dialogue-mode', 'random');
+    div.setAttribute('data-night-dialogue', '{size_change:10}Bawk... ||{size_change:10} Bakaw... ||{size_change:20} Zzz...||{size_change:10} Zzz...||{size_change:30} Zzz...');
+    div.setAttribute('data-dialogue', '{size_change:60}Bawk || {size_change:60}Bakaw || {size_change:20}Chirp || {size_change:10}hello...');
+    return div;
+}
+
+function rebuildCoopChickenElements() {
+    const arenaEl = document.getElementById('arena');
+    if (!arenaEl) return;
+
+    arenaEl.querySelectorAll('.game-square[data-chicken-flock="coop"]').forEach(el => el.remove());
+
+    const state = loadChickenState();
+    const coopArea = getConfiguredCoopArea();
+    setChickenProgress(state.inCoop, state.outOfCoop, true);
+
+    let nextId = 1;
+
+    // Spawn chickens currently outside the coop.
+    for (let i = 0; i < window.ChickensOutofCoop; i++) {
+        const p = randomPointOutsideCoopArea(coopArea);
+        arenaEl.appendChild(createCoopChickenElement(`square5-out-${nextId++}`, p.x, p.y));
+    }
+
+    // Spawn chickens currently inside the coop.
+    for (let i = 0; i < window.ChickensInCoop; i++) {
+        const p = randomPointInCoopArea(coopArea);
+        arenaEl.appendChild(createCoopChickenElement(`square5-in-${nextId++}`, p.x, p.y));
+    }
+}
+
+window.ChickensInCoop = 0;
+window.ChickensOutofCoop = CHICKEN_TOTAL_DEFAULT;
+window.CoopArea = { ...DEFAULT_COOP_AREA };
+rebuildCoopChickenElements();
+
 const squareEls    = Array.from(document.querySelectorAll('.game-square'));
 const squareStates = {};    // keyed by element id
 const dialogueConfig = {};  // keyed by element id — populated from data-* below
 let npcSpawnPositionsValidated = false;
+const DEFAULT_CHICKEN_NIGHT_IDLE = 'Assets/Mobile/MobileChicken.png';
+const DEFAULT_CHICKEN_NIGHT_DIALOGUE = ['Bawk... (night mode)'];
+let isNight = false;
 
 function randRange(min, max) { return Math.random() * (max - min) + min; }
+
+function parseDialogueLines(raw) {
+    return String(raw || '')
+        .split('||')
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+function parseActionValue(raw) {
+    const text = String(raw ?? '').trim();
+    if (!text) return undefined;
+    if (text === 'true') return true;
+    if (text === 'false') return false;
+    if (text === 'null') return null;
+
+    const num = Number(text);
+    if (Number.isFinite(num)) return num;
+
+    if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
+        try { return JSON.parse(text); }
+        catch (_err) { /* fall through to plain string */ }
+    }
+
+    return text;
+}
+
+function isUnsafePathSegment(segment) {
+    return segment === '__proto__' || segment === 'prototype' || segment === 'constructor';
+}
+
+function getWindowPathValue(path) {
+    const parts = String(path || '').split('.').map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return undefined;
+
+    let ref = window;
+    for (const part of parts) {
+        if (isUnsafePathSegment(part)) return undefined;
+        if (ref == null || !(part in ref)) return undefined;
+        ref = ref[part];
+    }
+    return ref;
+}
+
+function setWindowPathValue(path, value) {
+    const parts = String(path || '').split('.').map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return false;
+
+    let ref = window;
+    for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (isUnsafePathSegment(part)) return false;
+        if (ref[part] == null || typeof ref[part] !== 'object') return false;
+        ref = ref[part];
+    }
+
+    const leaf = parts[parts.length - 1];
+    if (isUnsafePathSegment(leaf)) return false;
+    ref[leaf] = value;
+    return true;
+}
+
+function parseIndexedFrames(dataset, prefix) {
+    const lowerPrefix = String(prefix || '').toLowerCase();
+    const frames = [];
+
+    for (const key of Object.keys(dataset || {})) {
+        const lowerKey = key.toLowerCase();
+        if (!lowerKey.startsWith(lowerPrefix)) continue;
+
+        const suffix = key.slice(prefix.length);
+        if (!/^\d+$/.test(suffix)) continue;
+
+        const order = parseInt(suffix, 10);
+        const value = String(dataset[key] || '').trim();
+        if (!value) continue;
+        frames.push({ order, value });
+    }
+
+    frames.sort((a, b) => a.order - b.order);
+    return frames.map(f => f.value);
+}
+
+function isChickenPath(path) {
+    return /chicken/i.test(String(path || ''));
+}
+
+function getButtonVisualOnState(buttonConfig, value) {
+    if (!buttonConfig) return false;
+    if (buttonConfig.onWhenDefined) return value === buttonConfig.onWhen;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    return Boolean(value);
+}
+
+function applyButtonVisualState(squareState, isOn) {
+    if (!squareState?.buttonConfig) return;
+
+    const cfg = squareState.buttonConfig;
+    const visual = isOn ? 'on' : 'off';
+    if (squareState.buttonVisualState === visual && squareState.frames?.length) return;
+
+    const nextFrames = isOn ? cfg.onFrames : cfg.offFrames;
+    if (!Array.isArray(nextFrames) || !nextFrames.length) return;
+
+    squareState.framesIdle = [...nextFrames];
+    squareState.framesWalk = [...nextFrames];
+    squareState.frames = squareState.framesIdle;
+    squareState.frameIndex = 0;
+    squareState.frameElapsedMs = 0;
+    squareState.buttonVisualState = visual;
+    if (squareState.img) squareState.img.src = squareState.frames[0];
+}
+
+function syncButtonNpcVisuals() {
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        if (s?.interactionType !== 'button' || !s.buttonConfig?.targetPath) continue;
+        const current = getWindowPathValue(s.buttonConfig.targetPath);
+        applyButtonVisualState(s, getButtonVisualOnState(s.buttonConfig, current));
+    }
+}
+
+function runButtonNpcAction(squareState) {
+    const cfg = squareState?.buttonConfig;
+    if (!cfg?.targetPath) return;
+
+    const current = getWindowPathValue(cfg.targetPath);
+    let next = current;
+
+    switch (cfg.actionMode) {
+        case 'set':
+            next = cfg.actionValue;
+            break;
+        case 'add': {
+            const base = Number(current);
+            const delta = Number(cfg.actionValue);
+            if (!Number.isFinite(base) || !Number.isFinite(delta)) return;
+            next = base + delta;
+            break;
+        }
+        case 'toggle':
+        default:
+            next = !Boolean(current);
+            break;
+    }
+
+    if (!setWindowPathValue(cfg.targetPath, next)) return;
+
+    const updated = getWindowPathValue(cfg.targetPath);
+    applyButtonVisualState(squareState, getButtonVisualOnState(cfg, updated));
+}
 
 for (const el of squareEls) {
     const id = el.id || `sq-${Math.random().toString(36).slice(2, 8)}`;
@@ -237,18 +544,23 @@ for (const el of squareEls) {
     const y        = parseFloat(el.dataset.y)  || 0;
     const canMove  = (el.dataset.canMove ?? 'true') !== 'false'; // default: true
     const diagMode = el.dataset.dialogueMode || 'sequence';
-    // Dialogue lines are separated by  |  in the attribute
-    const diagLines = (el.dataset.dialogue || '')
-        .split('||')
-        .map(s => s.trim())
-        .filter(Boolean);
+    const textBoxTypeRaw = (el.dataset.textBoxType || el.dataset.textboxType || '').trim().toLowerCase();
+    const textBoxType = textBoxTypeRaw === 'try' ? 'try' : 'default';
+    const interactionTypeRaw = (el.dataset.interactionType || '').trim().toLowerCase();
+    const interactionType = interactionTypeRaw === 'button' ? 'button' : 'dialogue';
+    const chickenFlock = (el.dataset.chickenFlock || '').trim().toLowerCase();
+    const isCoopChicken = chickenFlock === 'coop';
+
+    // Dialogue lines are separated by || in the attribute
+    const diagLines = parseDialogueLines(el.dataset.dialogue);
 
     // ── Build dialogueConfig entry ──────────────────────────────────────────
     dialogueConfig[id] = {
         texts:       diagLines.length ? diagLines : [`You interacted with ${id}.`],
         mode:        diagMode,
         counter:     0,
-        randomRange: [0, Math.max(1, diagLines.length - 1)]
+        randomRange: [0, Math.max(1, diagLines.length - 1)],
+        textBoxType
     };
 
     // ── Build or reuse the NPC sprite <img> ────────────────────────────────
@@ -270,17 +582,65 @@ for (const el of squareEls) {
         el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png.png',
         el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png.png'
     ];
+    const isChicken = [...framesIdle, ...framesWalk].some(isChickenPath);
+    const indexedNightIdleFrames = parseIndexedFrames(el.dataset, 'nightIdle');
+    const nightIdleLegacy = (el.dataset.nightIdle || '').trim();
+    const nightIdleFrames = indexedNightIdleFrames.length
+        ? indexedNightIdleFrames
+        : (nightIdleLegacy ? [nightIdleLegacy] : [DEFAULT_CHICKEN_NIGHT_IDLE]);
+    const nightDialogue = parseDialogueLines(el.dataset.nightDialogue);
+    const nightDialogueMode = (el.dataset.nightDialogueMode || 'sequence').trim() || 'sequence';
+    const buttonOnFramesIndexed = parseIndexedFrames(el.dataset, 'buttonOnIdle');
+    const buttonOffFramesIndexed = parseIndexedFrames(el.dataset, 'buttonOffIdle');
+    const buttonOnLegacy = (el.dataset.buttonOnIdle || '').trim();
+    const buttonOffLegacy = (el.dataset.buttonOffIdle || '').trim();
+    const buttonOnFrames = buttonOnFramesIndexed.length
+        ? buttonOnFramesIndexed
+        : (buttonOnLegacy ? [buttonOnLegacy] : [...framesIdle]);
+    const buttonOffFrames = buttonOffFramesIndexed.length
+        ? buttonOffFramesIndexed
+        : (buttonOffLegacy ? [buttonOffLegacy] : [...framesIdle]);
+
+    const actionModeRaw = (el.dataset.actionMode || '').trim().toLowerCase();
+    const actionMode = (actionModeRaw === 'set' || actionModeRaw === 'add' || actionModeRaw === 'toggle')
+        ? actionModeRaw
+        : 'toggle';
+    const actionValue = parseActionValue(el.dataset.actionValue);
+    const onWhen = parseActionValue(el.dataset.buttonOnWhen);
+    const onWhenDefined = String(el.dataset.buttonOnWhen ?? '').trim().length > 0;
+    const buttonTargetPath = String(el.dataset.actionTarget || '').trim();
 
     // ── Store runtime state ─────────────────────────────────────────────────
     squareStates[id] = {
         el, id, x, y,
         canMove,
+        baseCanMove: canMove,
         state:    'idle',
         timerMs:  randRange(800, 2400),
         dirX: 0,  dirY: 0,
         speed:    randRange(20, 60),
         interactedPaused: false,
         framesIdle, framesWalk,
+        dayFramesIdle: [...framesIdle],
+        dayFramesWalk: [...framesWalk],
+        isChicken,
+        isCoopChicken,
+        nightIdleFrames,
+        dayDialogueLines: [...(diagLines.length ? diagLines : [`You interacted with ${id}.`])],
+        dayDialogueMode: diagMode,
+        nightDialogue: nightDialogue.length ? nightDialogue : DEFAULT_CHICKEN_NIGHT_DIALOGUE,
+        nightDialogueMode,
+        interactionType,
+        buttonVisualState: null,
+        buttonConfig: {
+            targetPath: buttonTargetPath,
+            actionMode,
+            actionValue,
+            onFrames: [...buttonOnFrames],
+            offFrames: [...buttonOffFrames],
+            onWhen,
+            onWhenDefined
+        },
         frames:        framesIdle,
         frameIndex:    0,
         frameElapsedMs: 0,
@@ -292,6 +652,11 @@ for (const el of squareEls) {
     img.style.setProperty('--npcFlip', 1);
     el.style.left = `${x}px`;
     el.style.top  = `${y}px`;
+
+    if (interactionType === 'button' && buttonTargetPath) {
+        const current = getWindowPathValue(buttonTargetPath);
+        applyButtonVisualState(squareStates[id], getButtonVisualOnState(squareStates[id].buttonConfig, current));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +686,90 @@ function setDialogueBoundaryScale(v) {
     if (Number.isFinite(n) && n > 0) dialogueBoundaryScale = n;
 }
 
+function applyNightStateToChickens() {
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        if (!s?.isChicken) continue;
+
+        const cfg = dialogueConfig[id];
+        if (!cfg) continue;
+
+        if (isNight) {
+            s.canMove = false;
+            s.state = 'idle';
+            s.timerMs = randRange(700, 1400);
+            s.dirX = 0;
+            s.dirY = 0;
+            const nightFrames = (Array.isArray(s.nightIdleFrames) && s.nightIdleFrames.length)
+                ? s.nightIdleFrames
+                : [DEFAULT_CHICKEN_NIGHT_IDLE];
+            s.framesIdle = [...nightFrames];
+            s.framesWalk = [...nightFrames];
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img) s.img.src = s.frames[0];
+
+            cfg.texts = [...s.nightDialogue];
+            cfg.mode = s.nightDialogueMode;
+            cfg.counter = 0;
+        } else {
+            s.canMove = s.baseCanMove;
+            s.framesIdle = [...s.dayFramesIdle];
+            s.framesWalk = [...s.dayFramesWalk];
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img) s.img.src = s.frames[0];
+
+            cfg.texts = [...s.dayDialogueLines];
+            cfg.mode = s.dayDialogueMode;
+            cfg.counter = 0;
+        }
+    }
+}
+
+function setIsNight(value) {
+    const next = Boolean(value);
+    if (next === isNight) return;
+    isNight = next;
+    applyNightStateToChickens();
+}
+
+function refreshChickenCoopCounts(force = false) {
+    const coopArea = getConfiguredCoopArea();
+    let inCoop = 0;
+    let tracked = 0;
+
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        if (!s?.isCoopChicken) continue;
+        tracked += 1;
+
+        const elW = s.el.offsetWidth || 0;
+        const elH = s.el.offsetHeight || 0;
+        const centerX = s.x + elW / 2;
+        const centerY = s.y + elH / 2;
+        if (isPointInsideRect(centerX, centerY, coopArea)) inCoop += 1;
+    }
+
+    const outOfCoop = Math.max(0, tracked - inCoop);
+    if (!force && window.ChickensInCoop === inCoop && window.ChickensOutofCoop === outOfCoop) return;
+    setChickenProgress(inCoop, outOfCoop, true);
+}
+
+window.setIsNight = setIsNight;
+
+try {
+    Object.defineProperty(window, 'isNight', {
+        configurable: true,
+        get() { return isNight; },
+        set(value) { setIsNight(value); }
+    });
+} catch (_err) {
+    window.isNight = isNight;
+}
+
 function setDialogueFont(url, fontFamily) {
     if (!url || !fontFamily) return;
     const linkId = 'dialogue-font-' + btoa(url).replace(/=/g, '');
@@ -347,13 +796,22 @@ function createDialogueNode() {
     const body = document.createElement('div');
     body.className = 'dialogue-body';
     d.appendChild(body);
-    d.style.cssText = 'position:absolute; left:0; top:0; visibility:hidden; z-index:100000;';
+    d.style.cssText = 'position:absolute; left:0; top:0; visibility:hidden;';
     document.body.appendChild(d);
     return d;
 }
 
 function hideDialogue() {
     if (!dialogueNode) return;
+
+    const squareId = dialogueNode.dataset?.squareId || '';
+    if (squareId && squareStates[squareId]) {
+        const s = squareStates[squareId];
+        s.interactedPaused = false;
+        s.state = 'idle';
+        s.timerMs = randRange(400, 1200);
+    }
+
     if (_typewriterHandle) { clearTimeout(_typewriterHandle); _typewriterHandle = null; }
     _typewriterCancelled = true;
     dialogueNode.remove();
@@ -373,10 +831,23 @@ function positionDialogueNearSquare(squareEl) {
     dialogueNode.style.top  = `${Math.round(rect.top    - boxH - 6 - vOffset + window.scrollY)}px`;
 }
 
+function positionTryDialogueInScreen() {
+    if (!dialogueNode) return;
+    const hole = getScreenHoleRect();
+    const width = parsePx(getComputedStyle(root).getPropertyValue('--tryDialogueWidth')) || 420;
+    const height = parsePx(getComputedStyle(root).getPropertyValue('--tryDialogueHeight')) || 220;
+    const yOffset = parsePx(getComputedStyle(root).getPropertyValue('--tryDialogueYOffset')) || 0;
+    const left = hole.cx - width / 2;
+    const top = hole.cy - height / 2 + yOffset;
+    dialogueNode.style.left = `${Math.round(left)}px`;
+    dialogueNode.style.top = `${Math.round(top)}px`;
+}
+
 // ---------------------------------------------------------------------------
 //  Dialogue token rendering
 //
 //  Supported tokens (can be mixed in the same line):
+//    {size_change:24}     → sets this line's dialogue font size to 24px
 //    /n                   → line break
 //    {link:Label|URL}     → clickable hyperlink, opens in new tab
 //    {img:path/to/img}    → image on the RIGHT of the text
@@ -386,6 +857,17 @@ function positionDialogueNearSquare(squareEl) {
 function renderDialogueContent(rawText) {
     // Replace /n with real newlines
     let text = rawText.replace(/\/n/g, '\n');
+    const body = dialogueNode.querySelector('.dialogue-body');
+
+    // Optional leading size token: {size_change:int}
+    // Example: {size_change:28} This line will render at 28px.
+    let customSizePx = null;
+    text = text.replace(/^\s*\{size_change:\s*(-?\d+)\s*\}\s*/i, (_m, n) => {
+        const parsed = parseInt(n, 10);
+        if (Number.isFinite(parsed) && parsed > 0) customSizePx = parsed;
+        return '';
+    });
+    body.style.fontSize = customSizePx ? `${customSizePx}px` : '';
 
     // Extract any {img:...} tokens — there may be more than one, but we
     // render all of them to the right of the text column.
@@ -399,8 +881,6 @@ function renderDialogueContent(rawText) {
     // Process {link:...} tokens — convert to anchor HTML fragments.
     const linkTokenRegex = /\{link:([^|}]+)\|([^}]+)\}/g;
     const hasLinks = linkTokenRegex.test(text);
-
-    const body = dialogueNode.querySelector('.dialogue-body');
 
     // Remove any previously appended image elements so we start clean
     dialogueNode.querySelectorAll('.dialogue-img').forEach(el => el.remove());
@@ -451,6 +931,12 @@ function showDialogueForSquare(squareEl) {
     const rawText = getNextDialogueText(id);
     renderDialogueContent(rawText);
 
+    const cfg = dialogueConfig[id];
+    const textBoxType = cfg?.textBoxType === 'try' ? 'try' : 'default';
+    dialogueNode.dataset.textBoxType = textBoxType;
+    dialogueNode.classList.toggle('dialogue-box-try', textBoxType === 'try');
+    dialogueNode.style.position = textBoxType === 'try' ? 'fixed' : 'absolute';
+
     // Measure after rendering so we have box dimensions for positioning
     dialogueNode.style.visibility = 'hidden';
     const m = dialogueNode.getBoundingClientRect();
@@ -458,7 +944,8 @@ function showDialogueForSquare(squareEl) {
     dialogueNode._boxH = m.height || dialogueNode._boxH;
 
     dialogueNode.dataset.squareId = id;
-    positionDialogueNearSquare(squareEl);
+    if (textBoxType === 'try') positionTryDialogueInScreen();
+    else positionDialogueNearSquare(squareEl);
     dialogueNode.style.visibility = 'visible';
 
     // Pause this NPC's wandering while the player is talking to it
@@ -537,10 +1024,20 @@ function updateOverlap() {
 // ---------------------------------------------------------------------------
 
 function handleAction() {
+    if (dialogueNode) { hideDialogue(); return; }
+
     const target = currentOverlapSquare
         ?? Array.from(document.querySelectorAll('.game-square')).find(sq => isOverlapping(player, sq))
         ?? null;
-    if (target) showDialogueForSquare(target);
+    if (!target) return;
+
+    const state = squareStates[target.id];
+    if (state?.interactionType === 'button') {
+        runButtonNpcAction(state);
+        return;
+    }
+
+    showDialogueForSquare(target);
 }
 
 actionBtn?.addEventListener('click', handleAction);
@@ -887,6 +1384,8 @@ function isInsideScreenHole(vpX, vpY) {
 
 function dropDragged() {
     if (!dragState) return;
+    const droppedType = dragState.type;
+    const droppedId = dragState.id;
     const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
 
     if (dragState.type === 'player') {
@@ -908,6 +1407,10 @@ function dropDragged() {
     dragState.el.style.opacity  = '';
     dragState.el.style.cursor   = '';
     dragState = null;
+
+    if (droppedType === 'npc' && squareStates[droppedId]?.isCoopChicken) {
+        refreshChickenCoopCounts(true);
+    }
 }
 
 function onDragPointerMove(e) {
@@ -1147,6 +1650,8 @@ function loop(timestamp) {
     if (pressed.down)  dy += 1;
 
     if (dx !== 0 || dy !== 0) {
+        if (dialogueNode) hideDialogue();
+
         if (dx !== 0 && dy !== 0) { dx *= 1 / Math.sqrt(2); dy *= 1 / Math.sqrt(2); }
         const speed      = baseSpeedPxPerSecond * (isSprinting() ? sprintSpeedMultiplier : 1);
         const playerSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
@@ -1200,6 +1705,12 @@ function loop(timestamp) {
     }
 
     updateSquares(dt);
+    chickenCountSyncAccumulator += dt;
+    if (chickenCountSyncAccumulator >= 0.2) {
+        refreshChickenCoopCounts(false);
+        chickenCountSyncAccumulator = 0;
+    }
+    syncButtonNpcVisuals();
     updateDepthSorting();
     updateCamera(dt);
     updateOverlap();
@@ -1208,7 +1719,8 @@ function loop(timestamp) {
     if (dialogueNode?.dataset.squareId) {
         const squareEl = document.getElementById(dialogueNode.dataset.squareId);
         if (squareEl) {
-            positionDialogueNearSquare(squareEl);
+            if (dialogueNode.dataset.textBoxType === 'try') positionTryDialogueInScreen();
+            else positionDialogueNearSquare(squareEl);
             if (!isSquareWithinDialogueBoundary(squareEl)) hideDialogue();
         }
     }
@@ -1231,3 +1743,6 @@ window.addEventListener('load', () => {
     centerCameraOnPlayer();
 });
 requestAnimationFrame(loop);
+
+applyNightStateToChickens();
+refreshChickenCoopCounts(true);

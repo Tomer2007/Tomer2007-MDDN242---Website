@@ -18,7 +18,7 @@
 
   /* ── DIALOGUE ──────────────────────────────────────────────────────────────*/
   --dialogueFontFamily:     arial, sans-serif;
-  --dialogueFontSize:       18px;
+  --dialogueFontSize:       20px;
   --dialogueVerticalOffset: 14px;
 
   /* ── DIALOGUE IMAGE ────────────────────────────────────────────────────────
@@ -26,6 +26,9 @@
      Change this one value to make all dialogue images larger or smaller.
   */
   --dialogueImageSize: 120px;
+  --tryDialogueWidth: 580px;
+  --tryDialogueHeight: 480px;
+  --tryDialogueYOffset: 40px;
 
   /* Internal — set by JS at runtime, not intended to be edited here */
   --playerFlip:  1;
@@ -303,6 +306,22 @@ body {
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 0 6px 18px rgba(0,0,0,0.16);
   max-width: none;
+  z-index: 8500; /* below TomeBoy frame (9000), above arena */
+}
+
+.dialogue-box.dialogue-box-try {
+  width: var(--tryDialogueWidth);
+  min-width: var(--tryDialogueWidth);
+  max-width: var(--tryDialogueWidth);
+  min-height: var(--tryDialogueHeight);
+  max-height: var(--tryDialogueHeight);
+  overflow: auto;
+  border-radius: 0;
+  align-items: flex-start;
+}
+
+.dialogue-box.dialogue-box-try .dialogue-body {
+  white-space: pre-line;
 }
 
 .dialogue-body {

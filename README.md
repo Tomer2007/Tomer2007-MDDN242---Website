@@ -37,3 +37,30 @@ Now I want to fix the onscreen buttons to be more in theme, so I'm going to get 
 This has worked pretty well, but there are some problems when it comes to the mobile version, so I'm going to 
 
 (still working on the read me so it's not fully updated)
+
+
+To Do list (Ranked on how long term they will be added)
+
+- Finish Adding and Spriting the NPC's in the Hall of Past Projects
+- Add About Me buttons and Contact Info Buttons, Make Home Returning Constelattion, Make Settings Room with things like Night Mode and Movement Reduction
+- Add Nightmode: Change world Sprite Art for a night time look. Make chickens stop moving with Sleeping Sprite. Make Chicken Dialogue change to Zzzzzzz. Maybe give each NPC coffee like the coffee NPC? 
+Mobile Nightmode will probably just dim the sprites inside the screen.
+- Add music: find something chill and royalty free, get a chiptune song for mobile, and a cozier nighttime song.
+-Add sound effects, give each NPC the Indie Rpg repeating audio for talking, with chickens getting the repeated sound of a chicken.
+-Add a home button in the constelattions which teleports player to spawn
+
+
+-Add standard Website view button in constelattions which takes user to a new page with just text and images.
+-Add quest progression, with the game remembering how many chickens are in the pen, and the Guide NPC reacting to the quests completion
+-Expand the map to have a gallery for some art to the right, maybe make some houses up North
+-Add decoration Npcs like Vases and Pots which when interacted with, break (zelda reference)
+-Add more things to do in the Mobile Version
+
+
+-Add the secret button in the Ominous Chapel
+-Make the secret buttons change the maps sprite and hitbox, to show a secret room. Going in this room will let the player pick up the SWORD. This secret SWORD gives the player the new button input of X which will cause the character to stab in the direction it's facing. Hitting any scene elements with this (NPC's, Vases, More), will delete that page element with a pixelated explosion. They may be able to come back by reloading or may not.
+
+
+- After killing all other NPCs the Player can now attack the guide who's shield wore off. Doing so will give some dialogue and then force the player into a new page. This page will function like a RPG boss battle. If the player tries to go back to the main website, they will automatically go back to the fight (as the code to send them there hasn't ended, make system similar to mobile check).
+Upon defeating the Guide the player can return to the world which is empty. The background Music has stopped and the beaches sea is Red.
+Going back to the underground Room the player can push a restart buttons to bring the website back to the way it was before.

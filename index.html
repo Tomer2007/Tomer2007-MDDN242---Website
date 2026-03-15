@@ -84,7 +84,38 @@
                                 "random"   → a random line is picked each time.
 
           data-dialogue         All dialogue lines written as ONE attribute.
-                                Separate individual lines with  |
+                                Separate individual lines with  ||
+
+          INTERACTION MODE
+          ─────────────────────────────────────────────────────────────────
+          data-interaction-type "dialogue" (default) → shows dialogue box.
+                                "button"             → runs a variable action.
+
+          BUTTON ACTION (for data-interaction-type="button")
+          ─────────────────────────────────────────────────────────────────
+          data-action-target    Variable path on window, e.g. isNight
+                                or gameState.speedMultiplier.
+          data-action-mode      "toggle" (default), "set", or "add".
+          data-action-value     Value used by "set" and "add".
+                                Parsed as boolean/number/JSON/string.
+
+          BUTTON SPRITES (for data-interaction-type="button")
+          ─────────────────────────────────────────────────────────────────
+          data-button-off-idle1..N  Frames shown when button is OFF.
+          data-button-on-idle1..N   Frames shown when button is ON.
+          data-button-on-when       Optional explicit ON value match.
+                                    If omitted, ON is based on the target
+                                    value's truthiness.
+
+          data-text-box-type    "try"    → uses popup panel style (playground-like).
+                                any other value / missing → normal floating dialogue.
+
+          data-night-idle1..N   (optional) night idle animation frames.
+                                Example: data-night-idle1, data-night-idle2, etc.
+                                Frames are read in number order.
+                                Legacy fallback still supported: data-night-idle.
+          data-night-dialogue   (optional) dialogue used when isNight=true.
+          data-night-dialogue-mode (optional) "sequence" or "random" for night dialogue.
 
                                 Special tokens you can use inside any line:
                                   /n
@@ -100,6 +131,11 @@
                                     Tweak --dialogueImageSize in styles.css to
                                     change how large the image appears.
                                     Example: {img:Assets/preview.png}
+
+                                  {size_change:24}
+                                    → put this at the START of a dialogue line
+                                    to set that line's text size in px.
+                                    Example: {size_change:28} Big text line
 
           FULL EXAMPLE
           ─────────────────────────────────────────────────────────────────
@@ -119,6 +155,13 @@
         <img id="world-hitbox" src="Assets/Tomer'sWebsiteTempWorldHitbox3.png.png" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;" alt="">
         
         <canvas id="hitbox-canvas" style="display:none;"></canvas>
+        <div id="CoopArea"
+          data-x="1995"
+          data-y="3160"
+          data-width="265"
+          data-height="165"
+          style="position:absolute; left:1995px; top:3160px; width:265px; height:165px; border:2px dashed rgba(255,255,255,0.45); background:rgba(255,255,255,0.08); pointer-events:none;"
+          aria-hidden="true"></div>
         <!-- NPC 1 — wandering, sequence dialogue -->
         <div class="game-square" id="square1"
             data-x="1500" data-y="1800"
@@ -164,7 +207,7 @@
             data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
             data-can-move="true"
             data-dialogue-mode="random"
-            data-dialogue="AAAAAAAAAAAGHHHHHHHHH!!!!!! || AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
+            data-dialogue="{size_change:40}AAAAAAAAAAAGHHHHHHHHH!!!!!! || {size_change:50}AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || {size_change:40}AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!!">
         </div>
 
         <div class="game-square" id="square6"
@@ -174,8 +217,9 @@
             data-walk-1="Assets/WebsiteNPC1Walk1.png.png"
             data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
             data-can-move="false"
+            data-text-box-type="try"
             data-dialogue-mode="sequence"
-            data-dialogue="Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya.">
+            data-dialogue="{size_change:40}Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya.">
         </div>
 
         <div class="game-square" id="square7"
@@ -184,9 +228,13 @@
             data-idle-2="Assets/Mobile/MobileChicken.png"
             data-walk-1="Assets/Mobile/MobileChicken.png"
             data-walk-2="Assets/Mobile/MobileChicken.png"
+            data-night-idle1="Assets/Nighttime/WebsiteSleepingChicken1.png.png"
+            data-night-idle2="Assets/Nighttime/WebsiteSleepingChicken2.png.png"
+            data-night-idle3="Assets/Nighttime/WebsiteSleepingChicken3.png.png"
+            data-night-dialogue="Bawk... It's night time now. || The coop is calling me. || Goodnight, traveller."
             data-can-move="true"
             data-dialogue-mode="sequence"
-            data-dialogue="BAAAKAAWWW!!!!! || I Don't Think I'm Meant /n To Be Here || Im Scared || Please Just Take Me Back to the Mobile Version || I feel out of place || Bakaw... ||BAAAAWWWWWKKKKKKK!!!!!!! /n chirp chirp /n BAAAAAAAAKKKKKKAAAAAAAWWWWWW!!!!!!!">
+            data-dialogue="{size_change:40}BAAAKAAWWW!!!!! || I Don't Think I'm Meant /n To Be Here || Im Scared || Please Just Take Me Back to the Mobile Version || I feel out of place || Bakaw... ||BAAAAWWWWWKKKKKKK!!!!!!! /n chirp chirp /n BAAAAAAAAKKKKKKAAAAAAAWWWWWW!!!!!!!">
         </div>
 
         <div class="game-square" id="square8"
@@ -197,7 +245,7 @@
           data-walk-2="Assets/WebsiteNPC1Walk2.png.png"
           data-can-move="true"
           data-dialogue-mode="sequence"
-          data-dialogue="It is I, the ghost of /n Projects Past || Welcome to my halls. || Do you want to see some past projects? || Well Here You Go! || {link:Horse Empire|https://groganisntreal.itch.io/horse-empire} is an immersive /n horse security simulator, /n based on games like Papers Please. /n It was made in 3 days for the Mini Game Jam 205, /n it placed 77th which is alright /n for being made with in 1 week of using Godot. || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
+          data-dialogue="{size_change:40}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:40}Do you want to see some past projects? || {size_change:40}Well Here You Go! || {link:Horse Empire|https://groganisntreal.itch.io/horse-empire} is an immersive /n horse security simulator, /n based on games like Papers Please. /n It was made in 3 days for the Mini Game Jam 205, /n it placed 77th which is alright /n for being made with in 1 week of using Godot. || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
       </div>
 
        <div class="game-square" id="square9"
@@ -218,6 +266,7 @@
           data-walk-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-walk-2="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-can-move="false"
+          data-text-box-type="try"
           data-dialogue-mode="sequence"
           data-dialogue="-= Horse Empire =- /n A game created by a group of VUW students /n in Game203. /n Was submitted to Mini 205 : Horse, /n where it placed 77th overall. || Tomer's contribution to the game /n was limited to the programming which /n was rather difficult due to being made /n within the first week of using Godot. || The Game was made in just /n three days. /n /n [The Rest of the Text is Irrelevant] || {link:Horse Empire, Available Now |https://groganisntreal.itch.io/horse-empire} {img:Assets/NPC/HorseEmpire/HorseEmpirePreview.png|320}">
       </div>
@@ -240,45 +289,60 @@
           data-walk-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-walk-2="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-can-move="false"
+          data-text-box-type="try"
           data-dialogue-mode="sequence"
           data-dialogue="-= Burger Wallpaper =- /n A wallpaper made in 2025 for a /n University Course. /n It uses randomly generated variables to make /n a pattern of unique burgers. /n In the code it even has different burger /n modes and settings. || Unfortunately, there isn't any buttons on / the site to change the burger generator. /n So all you can do is refresh the page /n for a new burger pattern. || Click {link:Here |https://25-dsdn142.github.io/parametric-patterns-Tomer2007/} to view the wallpaper. || 'I'm Burger Steve.'">
       </div>
 
-      <div class="game-square" id="square12"
+      <div class="game-square" id="square13"
           data-x="4150" data-y="1500"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-idle-2="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-walk-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-walk-2="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png.png"
           data-can-move="false"
+          data-text-box-type="try"
           data-dialogue-mode="sequence"
           data-dialogue="-=-= Puppet Fighterz =-=- /n Is a browser based fighting game /n which uses the webcam to make a fighting game. || By holding your hand infront of the camera /n It will create a Puppet. /n These puppets will be created for each hand. /n Originally they were just meant to be little /n controlable puppets, but they got mad at each other /n and now fight endlessly. || The game includes features like blocking /n (Punching the opponents hand, or /n lowering arms for a block) /n Punching (Punching opponents in the head to /n deal damage) /n and launching Spirit Balls /n (By tapping you pinky and thumb /n together you can start charging a spirit ball, /n releasing it shoots the ball directly at /n the opponents face, where it can /n be blocked by punching). || The game was made for a uni assignment, /n so is no longer being supported, /n despite being in a quite buggy state. || Test it out {link:Here |https://25-dsdn142.github.io/react-Tomer2007/}. [Link currently not working :[ ]">
       </div>
 
-        <!-- NPC 4 — wandering, random dialogue -->
-        <script>
-        (function(){
-          const arena = document.getElementById('arena');
-          if (!arena) return;
-          function randi(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+      <div class="game-square" id="square14"
+            data-x="2400" data-y="2400"
+            data-idle-1="Assets/WebsiteAboutButton.png.png"
+            data-idle-2="Assets/WebsiteAboutButton.png.png"
+            data-walk-1="Assets/WebsiteAboutButton.png.png"
+            data-walk-2="Assets/WebsiteAboutButton.png.png"
+            data-can-move="false"
+            data-text-box-type="try"
+            data-dialogue-mode="sequence"
+            data-dialogue="{size_change:80}ABOUT ME|| {size_change:40}I am a second year game design student at VUW. Having spent many years doing game design and learning a variety of engines and coding languages. || {size_change:40}As for professional experience I'm yet to get any, other than my experience in my degree. However, I am eagerly seeking an internship job at one of the Game Development studios in Wellington. || {size_change:40}You can check out past design projects in the HALL OF PROJECTS PAST to the east of this house. || Also I think you should really help with those chickens.">
+        </div>
 
-          for (let i = 0; i < 15; i++) {
-            const div = document.createElement('div');
-            div.className = 'game-square';
-            div.id = 'square5-' + (i + 1);
-            div.setAttribute('data-x', randi(1000, 5000));
-            div.setAttribute('data-y', randi(100, 5000));
-            div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png.png");
-            div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png.png");
-            div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png.png");
-            div.setAttribute('data-walk-2', "Assets/Tomer'sWebsiteChickenWalk2.png.png");
-            div.setAttribute('data-can-move', 'true');
-            div.setAttribute('data-dialogue-mode', 'random');
-            div.setAttribute('data-dialogue', 'Bawk || Bakaw || Chirp || {img:Assets/Tomer\'sWebsiteChickenIdle2.png.png|120}');
-            arena.appendChild(div);
-          }
-        })();
-        </script>
+        <div class="game-square" id="square15"
+            data-x="2900" data-y="2400"
+            data-idle-1="Assets/WebsiteAboutButton.png.png"
+            data-idle-2="Assets/WebsiteAboutButton.png.png"
+            data-walk-1="Assets/WebsiteAboutButton.png.png"
+            data-walk-2="Assets/WebsiteAboutButton.png.png"
+            data-can-move="false"
+            data-text-box-type="try"
+            data-dialogue-mode="sequence"
+            data-dialogue="{size_change:80}CONTACTS|| {size_change:40}Email: thirschauge@gmail.com /n Phone: [Redacted] /n Address: [Redacted] /n IP: 20 /n Itch.io Account: Tomer2007 /n Tomer: Tomer">
+        </div>
+
+          <div class="game-square" id="square16"
+            data-x="3100" data-y="2220"
+            data-idle-1="Assets/WebsiteLightModeSwitch.png.png"
+            data-idle-2="Assets/WebsiteLightModeSwitch.png.png"
+            data-walk-1="Assets/WebsiteLightModeSwitch.png.png"
+            data-walk-2="Assets/WebsiteLightModeSwitch.png.png"
+            data-can-move="false"
+            data-interaction-type="button"
+            data-action-target="isNight"
+            data-action-mode="toggle"
+            data-button-off-idle1="Assets/Nighttime/WebsiteLightModeSwitch.png.png"
+            data-button-on-idle1="Assets/Nighttime/WebsiteDarkModeSwitch.png.png">
+          </div>
 
         <!-- Player sprite — do not remove -->
         <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png.png" alt="Player sprite">
