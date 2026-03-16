@@ -34,7 +34,14 @@ Mainly there was an issue where the player wouldn't be able to interact the NPC'
 Fortunately after a lot of debugging, I was able to solve all of these issues so the text will appear at the top left of the NPC, which can be interacted from any direction. I also made it freeze the NPC in place when being interacted with, forcing it to idle so it doesn't walk away when the player is talking to it.
 
 Now I want to fix the onscreen buttons to be more in theme, so I'm going to get the AI to reposition them in a more standard controller layout based on image reference.
-This has worked pretty well, but there are some problems when it comes to the mobile version, so I'm going to 
+This has worked pretty well, but there are some problems when it comes to the mobile version, with the screen looking way smaller and the controller being unaligned with the player. So to fix this I sent many more prompts trying to fix this, asking it to add all kinds of offsets and more.
+Unfortunately non of these requests and changes would fix the problem without ruining the computer version so I decided to change my approach.
+Firstly I made a prompt for the AI to change the controller positioning to be centred in the viewport, following the users scroll, and staying in the centre of the viewport even when it's resized.
+
+I then asked the AI to make a copy of the all the current websites code to make the Playground Page, a lighter version of the website made for mobile without the mechanics that were harming the Mobile version. So to do this I asked the AI to remove the camera scroll and just have everything in one fixed screen.
+To keep this looking good I changed all the sprite art, except the controller, making a smaller, less detailed, version of the map, NPCs, and player sprites inspired by the limitations of the Gameboy.
+
+Unfortunately the NPCs dialogue box was too small in this version 
 
 (still working on the read me so it's not fully updated)
 
@@ -42,9 +49,10 @@ This has worked pretty well, but there are some problems when it comes to the mo
 To Do list (Ranked on how long term they will be added)
 
 - Finish Adding and Spriting the NPC's in the Hall of Past Projects
-- Add About Me buttons and Contact Info Buttons, Make Home Returning Constelattion, Make Settings Room with things like Night Mode and Movement Reduction
+- Add About Me buttons and Contact Info Buttons, Make Settings Room with things like Night Mode and Movement Reduction
 - Add Nightmode: Change world Sprite Art for a night time look. Make chickens stop moving with Sleeping Sprite. Make Chicken Dialogue change to Zzzzzzz. Maybe give each NPC coffee like the coffee NPC? 
 Mobile Nightmode will probably just dim the sprites inside the screen.
+- Make new custom pixelated cursor whenever the player moves the cursor over the screen to show they can move NPCs, add drag sprites for each NPC, make the cursor react to being held down with a grabbing sprite, which remains as long as their dragging something (even if it goes off screen)
 - Add music: find something chill and royalty free, get a chiptune song for mobile, and a cozier nighttime song.
 -Add sound effects, give each NPC the Indie Rpg repeating audio for talking, with chickens getting the repeated sound of a chicken.
 -Add a home button in the constelattions which teleports player to spawn

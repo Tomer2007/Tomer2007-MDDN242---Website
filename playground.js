@@ -137,13 +137,13 @@ if (worldHitboxImg && hitboxCtx) {
 }
 
 const idleFrames = [
-  "Assets/Mobile/MobilePlayerIdle1.png.png",
-  "Assets/Mobile/MobilePlayerIdle2.png.png"
+  "Assets/Mobile/MobilePlayerIdle1.png",
+  "Assets/Mobile/MobilePlayerIdle2.png"
 ];
 
 const walkFrames = [
-  "Assets/Mobile/MobilePlayerWalk1.png.png",
-  "Assets/Mobile/MobilePlayerWalk2.png.png"
+  "Assets/Mobile/MobilePlayerWalk1.png",
+  "Assets/Mobile/MobilePlayerWalk2.png"
 ];
 
 const pressed = { left: false, right: false, up: false, down: false };
@@ -191,13 +191,13 @@ for (const el of squareEls) {
   }
 
   const framesIdle = [
-    el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png.png',
-    el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png.png'
+    el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
+    el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
   ];
 
   const framesWalk = [
-    el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png.png',
-    el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png.png'
+    el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png',
+    el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png'
   ];
 
   squareStates[id] = {

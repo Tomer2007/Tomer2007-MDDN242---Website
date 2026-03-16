@@ -188,12 +188,12 @@ const sprintBtn = document.getElementById('sprintBtn');
 // ---------------------------------------------------------------------------
 
 const idleFrames = [
-    "Assets/Tomer'sWebsitePlayerIdle1.png.png",
-    "Assets/Tomer'sWebsitePlayerIdle2.png.png"
+    "Assets/Tomer'sWebsitePlayerIdle1.png",
+    "Assets/Tomer'sWebsitePlayerIdle2.png"
 ];
 const walkFrames = [
-    "Assets/Tomer'sWebsitePlayerWalk1.png.png",
-    "Assets/Tomer'sWebsitePlayerWalk2.png.png"
+    "Assets/Tomer'sWebsitePlayerWalk1.png",
+    "Assets/Tomer'sWebsitePlayerWalk2.png"
 ];
 
 let frames         = idleFrames;
@@ -210,6 +210,7 @@ if (player) player.src = frames[0];
 //
 //  Each .game-square in index.html carries everything it needs:
 //    data-x / data-y          → starting position in the arena (px)
+//    data-size                → optional NPC size in px: "80" (both) or "120,80" (width,height)
 //    data-idle-1/2            → paths to the two idle sprite frames
 //    data-walk-1/2            → paths to the two walk sprite frames
 //    data-can-move            → "true" | "false"
@@ -329,13 +330,13 @@ function createCoopChickenElement(id, x, y) {
     div.setAttribute('data-chicken-flock', 'coop');
     div.setAttribute('data-x', String(Math.round(x)));
     div.setAttribute('data-y', String(Math.round(y)));
-    div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png.png");
-    div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png.png");
-    div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png.png");
-    div.setAttribute('data-walk-2', "Assets/Tomer'sWebsiteChickenWalk2.png.png");
-    div.setAttribute('data-night-idle1', 'Assets/Nighttime/WebsiteSleepingChicken1.png.png');
-    div.setAttribute('data-night-idle2', 'Assets/Nighttime/WebsiteSleepingChicken2.png.png');
-    div.setAttribute('data-night-idle3', 'Assets/Nighttime/WebsiteSleepingChicken3.png.png');
+    div.setAttribute('data-idle-1', "Assets/Tomer'sWebsiteChickenIdle1.png");
+    div.setAttribute('data-idle-2', "Assets/Tomer'sWebsiteChickenIdle2.png");
+    div.setAttribute('data-walk-1', "Assets/Tomer'sWebsiteChickenWalk1.png");
+    div.setAttribute('data-walk-2', "Assets/Tomer'sWebsiteChickenWalk2.png");
+    div.setAttribute('data-night-idle1', 'Assets/Nighttime/WebsiteSleepingChicken1.png');
+    div.setAttribute('data-night-idle2', 'Assets/Nighttime/WebsiteSleepingChicken2.png');
+    div.setAttribute('data-night-idle3', 'Assets/Nighttime/WebsiteSleepingChicken3.png');
     div.setAttribute('data-can-move', 'true');
     div.setAttribute('data-dialogue-mode', 'random');
     div.setAttribute('data-night-dialogue-mode', 'random');
@@ -407,6 +408,26 @@ function parseActionValue(raw) {
     }
 
     return text;
+}
+
+function parseNpcSize(raw) {
+    const text = String(raw ?? '').trim();
+    if (!text) return null;
+
+    const nums = text.match(/\d*\.?\d+/g) || [];
+    if (!nums.length) return null;
+
+    const first = parseFloat(nums[0]);
+    const second = nums.length > 1 ? parseFloat(nums[1]) : NaN;
+
+    if (!Number.isFinite(first) || first <= 0) return null;
+
+    // Single value keeps previous behavior: square size.
+    if (!Number.isFinite(second) || second <= 0) {
+        return { width: first, height: first };
+    }
+
+    return { width: first, height: second };
 }
 
 function isUnsafePathSegment(segment) {
@@ -542,6 +563,7 @@ for (const el of squareEls) {
 
     const x        = parseFloat(el.dataset.x)  || 0;
     const y        = parseFloat(el.dataset.y)  || 0;
+    const npcSize = parseNpcSize(el.dataset.size);
     const canMove  = (el.dataset.canMove ?? 'true') !== 'false'; // default: true
     const diagMode = el.dataset.dialogueMode || 'sequence';
     const textBoxTypeRaw = (el.dataset.textBoxType || el.dataset.textboxType || '').trim().toLowerCase();
@@ -575,12 +597,12 @@ for (const el of squareEls) {
 
     // Read sprite paths from data-* (fall back to a shared default path)
     const framesIdle = [
-        el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png.png',
-        el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png.png'
+        el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
+        el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
     ];
     const framesWalk = [
-        el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png.png',
-        el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png.png'
+        el.dataset['walk-1'] || 'Assets/WebsiteNPC1Walk1.png',
+        el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png'
     ];
     const isChicken = [...framesIdle, ...framesWalk].some(isChickenPath);
     const indexedNightIdleFrames = parseIndexedFrames(el.dataset, 'nightIdle');
@@ -650,6 +672,10 @@ for (const el of squareEls) {
 
     img.src = framesIdle[0];
     img.style.setProperty('--npcFlip', 1);
+    if (npcSize) {
+        el.style.width = `${npcSize.width}px`;
+        el.style.height = `${npcSize.height}px`;
+    }
     el.style.left = `${x}px`;
     el.style.top  = `${y}px`;
 
@@ -1069,8 +1095,9 @@ function updateSquares(dt) {
         const s  = squareStates[id];
         const el = s.el;
         const spriteSize = Math.max(el.offsetWidth || 0, el.offsetHeight || 0);
+        const isDragged = dragState?.type === 'npc' && dragState.id === id;
 
-        if (spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
+        if (!isDragged && spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
             const unstuck = findNearestValidPosition(s.x, s.y, spriteSize);
             const clamped = clampToArena(unstuck.x, unstuck.y, spriteSize);
             s.x = clamped.x;
@@ -1088,7 +1115,7 @@ function updateSquares(dt) {
         }
 
         // ── Interaction pause ───────────────────────────────────────────────
-        if (s.interactedPaused) {
+        if (s.interactedPaused && !isDragged) {
             if (!isOverlapping(player, el)) {
                 s.interactedPaused = false;
                 s.state   = 'idle';
@@ -1101,7 +1128,7 @@ function updateSquares(dt) {
         }
 
         // ── Wander AI (only for NPCs with data-can-move="true") ─────────────
-        if (s.canMove && !s.interactedPaused) {
+        if (s.canMove && !s.interactedPaused && !isDragged) {
             s.timerMs -= dt * 1000;
             if (s.timerMs <= 0) {
                 if (s.state === 'idle') {
@@ -1332,11 +1359,13 @@ function isAnyInputHeld() {
 // ---------------------------------------------------------------------------
 
 let dragState = null;
+const DRAG_LERP_FACTOR = 0.18;  // Smoothing factor for drag motion (0.2 = fast, 0.1 = slow)
 // dragState = {
 //   type:       'player' | 'npc'
 //   id:         npc id string (npc only)
 //   el:         the DOM element being dragged
 //   offsetX/Y:  cursor offset from element top-left at grab time (arena coords)
+//   targetX/Y:  target position to smoothly interpolate towards
 // }
 
 // Convert a viewport point to arena coordinates
@@ -1415,34 +1444,38 @@ function dropDragged() {
 
 function onDragPointerMove(e) {
     if (!dragState) return;
-    const vpX = e.clientX;
-    const vpY = e.clientY;
+    // Store the raw cursor viewport position; target is recomputed each frame
+    // so it stays correct even when the camera scrolls without cursor movement.
+    dragState.cursorVpX = e.clientX;
+    dragState.cursorVpY = e.clientY;
+}
 
-    const pos    = vpToArena(vpX, vpY);
-    const arenaX = pos.x - dragState.offsetX;
-    const arenaY = pos.y - dragState.offsetY;
+function updateDraggedMovement() {
+    if (!dragState) return;
     const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
-    const clamped = clampToArena(arenaX, arenaY, spriteSize);
-    const clampedX = clamped.x;
-    const clampedY = clamped.y;
+
+    // Recompute arena target fresh every frame from stored cursor viewport position.
+    // This ensures the target stays correct when the camera scrolls without the cursor moving.
+    const pos    = vpToArena(dragState.cursorVpX, dragState.cursorVpY);
+    const targetX = clampToArena(pos.x - dragState.offsetX, pos.y - dragState.offsetY, spriteSize).x;
+    const targetY = clampToArena(pos.x - dragState.offsetX, pos.y - dragState.offsetY, spriteSize).y;
 
     if (dragState.type === 'player') {
-        currentX = clampedX;
-        currentY = clampedY;
+        currentX += (targetX - currentX) * DRAG_LERP_FACTOR;
+        currentY += (targetY - currentY) * DRAG_LERP_FACTOR;
         applyValues();
     } else {
         const s = squareStates[dragState.id];
         if (s) {
-            s.x = clampedX;
-            s.y = clampedY;
+            s.x += (targetX - s.x) * DRAG_LERP_FACTOR;
+            s.y += (targetY - s.y) * DRAG_LERP_FACTOR;
+            const clamped = clampToArena(s.x, s.y, spriteSize);
+            s.x = clamped.x;
+            s.y = clamped.y;
             s.el.style.left = `${Math.round(s.x)}px`;
             s.el.style.top  = `${Math.round(s.y)}px`;
         }
     }
-
-    // Camera follows dragged actor
-    cameraTargetX = window.scrollX;
-    cameraTargetY = window.scrollY;
 }
 
 function onDragPointerUp(e) {
@@ -1462,8 +1495,10 @@ function startDrag(e, type, id, el) {
         type,
         id,
         el,
-        offsetX: e.clientX - r.left,   // cursor offset within the sprite
+        offsetX: e.clientX - r.left,   // cursor offset within the sprite (viewport coords)
         offsetY: e.clientY - r.top,
+        cursorVpX: e.clientX,           // live cursor viewport position (updated each pointermove)
+        cursorVpY: e.clientY,
     };
 
     el.style.opacity = '0.75';
@@ -1541,8 +1576,9 @@ function updateCamera(dt) {
         const actorVpY = r.top  + r.height / 2;
         const dxView = actorVpX - hole.cx;
         const dyView = actorVpY - hole.cy;
-        if (Math.abs(dxView) > hole.halfW) cameraTargetX += (Math.abs(dxView) - hole.halfW) * Math.sign(dxView);
-        if (Math.abs(dyView) > hole.halfH) cameraTargetY += (Math.abs(dyView) - hole.halfH) * Math.sign(dyView);
+        // Recompute target fresh each frame so camera scrolls even when cursor is stationary
+        cameraTargetX = window.scrollX + (Math.abs(dxView) > hole.halfW ? (Math.abs(dxView) - hole.halfW) * Math.sign(dxView) : 0);
+        cameraTargetY = window.scrollY + (Math.abs(dyView) > hole.halfH ? (Math.abs(dyView) - hole.halfH) * Math.sign(dyView) : 0);
         const doc = document.documentElement;
         cameraTargetX = Math.min(Math.max(0, cameraTargetX), Math.max(0, doc.scrollWidth  - window.innerWidth));
         cameraTargetY = Math.min(Math.max(0, cameraTargetY), Math.max(0, doc.scrollHeight - window.innerHeight));
@@ -1705,6 +1741,7 @@ function loop(timestamp) {
     }
 
     updateSquares(dt);
+    updateDraggedMovement();
     chickenCountSyncAccumulator += dt;
     if (chickenCountSyncAccumulator >= 0.2) {
         refreshChickenCoopCounts(false);
