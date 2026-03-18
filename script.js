@@ -134,8 +134,9 @@ const TB_HOLE_CX     = 239.5;
 const TB_HOLE_CY     = 235.0;
 const TB_HOLE_HALF_W = 18.75;
 const TB_HOLE_HALF_H = 16.00;
-const MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE = 1.6;
-const MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE = 0.8;  // Smaller value = camera scrolls sooner when dragging
+const MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE = 1.2;
+const MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE = 0.55; // Smaller value = camera scrolls sooner when dragging
+const MOVEMENT_REDUCTION_BOUNDARY_MAX_VIEWPORT_RATIO = 0.28;
 
 function getTomeboySize() {
     const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 2.8;
@@ -156,15 +157,32 @@ function getScreenHoleRect() {
         tbTop  = window.innerHeight / 2 - tbSize / 2;
     }
     const scale = tbSize / TB_NATIVE;
+    const baseHalfW = TB_HOLE_HALF_W * scale;
+    const baseHalfH = TB_HOLE_HALF_H * scale;
+
     // Use drag boundary scale when actively dragging, otherwise use standard follow boundary scale
-    const movementBoundaryScale = window.MovementReduction
+    const movementReduced = Boolean(window.MovementReduction);
+    const movementBoundaryScale = movementReduced
         ? (dragState ? MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE : MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE)
         : 1;
+
+    let halfW = baseHalfW * movementBoundaryScale;
+    let halfH = baseHalfH * movementBoundaryScale;
+
+    // Keep boundary behavior consistent across displays by capping it to viewport size.
+    // Without this cap, large rendered UI scales can make camera scrolling trigger too late.
+    if (movementReduced) {
+        const maxHalfW = window.innerWidth * MOVEMENT_REDUCTION_BOUNDARY_MAX_VIEWPORT_RATIO;
+        const maxHalfH = window.innerHeight * MOVEMENT_REDUCTION_BOUNDARY_MAX_VIEWPORT_RATIO;
+        halfW = Math.min(halfW, maxHalfW);
+        halfH = Math.min(halfH, maxHalfH);
+    }
+
     return {
         cx:    tbLeft + TB_HOLE_CX     * scale,
         cy:    tbTop  + TB_HOLE_CY     * scale,
-        halfW: TB_HOLE_HALF_W * scale * movementBoundaryScale,
-        halfH: TB_HOLE_HALF_H * scale * movementBoundaryScale,
+        halfW,
+        halfH,
     };
 }
 
