@@ -60,6 +60,8 @@ const ARENA_OFFSET_X = 0;
 const ARENA_OFFSET_Y = 90;
 const OFFSET_BASE_VIEWPORT_WIDTH = 1330;
 const OFFSET_BASE_VIEWPORT_HEIGHT = 600;
+const MOVEMENT_REDUCTION_EXTRA_LEFT_PADDING_PX = 800;
+const MOVEMENT_REDUCTION_EXTRA_WIDTH_PX = 400;
 
 const BASE_WORLD_OFFSET_X = getVar('--worldOffsetX', WORLD_MAP_OFFSET_X);
 const BASE_WORLD_OFFSET_Y = getVar('--worldOffsetY', WORLD_MAP_OFFSET_Y);
@@ -150,11 +152,16 @@ function syncResponsiveOffsets() {
 
     const scaleX = window.innerWidth / OFFSET_BASE_VIEWPORT_WIDTH;
     const scaleY = window.innerHeight / OFFSET_BASE_VIEWPORT_HEIGHT;
-    const movementScale = movementReduction ? MOVEMENT_REDUCTION_SCALE : 1;
 
-    const worldOffsetX = Math.round(BASE_WORLD_OFFSET_X * scaleX);
+    // In MovementReduction, add extra left-side authored space by pushing
+    // world content right; this lets the camera viewport reach farther left.
+    const reductionLeftPadding = movementReduction
+        ? Math.round(MOVEMENT_REDUCTION_EXTRA_LEFT_PADDING_PX * scaleX)
+        : 0;
+    const worldOffsetX = Math.round(BASE_WORLD_OFFSET_X * scaleX) + reductionLeftPadding;
     const worldOffsetY = Math.round(BASE_WORLD_OFFSET_Y * scaleY);
-    const arenaOffsetX = Math.round(BASE_ARENA_OFFSET_X * scaleX * movementScale);
+    const normalArenaOffsetX = Math.round(BASE_ARENA_OFFSET_X * scaleX);
+    const arenaOffsetX = normalArenaOffsetX;
     const arenaOffsetY = Math.round(BASE_ARENA_OFFSET_Y * scaleY);
 
     root.style.setProperty('--worldOffsetX', `${worldOffsetX}px`);
@@ -352,7 +359,9 @@ function syncArenaSizeForViewport() {
     const widthByViewport = window.innerWidth + Math.round(window.innerWidth * 0.25);
     const heightByViewport = window.innerHeight + Math.round(window.innerHeight * 0.25);
 
-    arena.style.width = `${Math.ceil(Math.max(BASE_ARENA_WIDTH, widthByWorld, widthByViewport))}px`;
+    let arenaWidth = Math.ceil(Math.max(BASE_ARENA_WIDTH, widthByWorld, widthByViewport));
+    if (movementReduction) arenaWidth += MOVEMENT_REDUCTION_EXTRA_WIDTH_PX;
+    arena.style.width = `${arenaWidth}px`;
     arena.style.height = `${Math.ceil(Math.max(BASE_ARENA_HEIGHT, heightByWorld, heightByViewport))}px`;
 }
 
