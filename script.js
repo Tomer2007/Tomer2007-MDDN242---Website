@@ -56,6 +56,119 @@ const COLLISION_FEET_OFFSET = 10;
 // World map offset — must match .world-map top/left in styles.css
 const WORLD_MAP_OFFSET_X = 590;   // px  (matches `left: 400px` in CSS)
 const WORLD_MAP_OFFSET_Y = -30;   // px  (matches `top:  600px` in CSS)
+const ARENA_OFFSET_X = 0;
+const ARENA_OFFSET_Y = 90;
+const OFFSET_BASE_VIEWPORT_WIDTH = 1330;
+const OFFSET_BASE_VIEWPORT_HEIGHT = 600;
+
+const BASE_WORLD_OFFSET_X = getVar('--worldOffsetX', WORLD_MAP_OFFSET_X);
+const BASE_WORLD_OFFSET_Y = getVar('--worldOffsetY', WORLD_MAP_OFFSET_Y);
+const BASE_ARENA_OFFSET_X = getVar('--arenaOffsetX', ARENA_OFFSET_X);
+const BASE_ARENA_OFFSET_Y = getVar('--arenaOffsetY', ARENA_OFFSET_Y);
+
+function getWorldOffsetX() {
+    return getVar('--worldOffsetX', WORLD_MAP_OFFSET_X);
+}
+
+function getWorldOffsetY() {
+    return getVar('--worldOffsetY', WORLD_MAP_OFFSET_Y);
+}
+
+let lastAppliedWorldOffsetX = getWorldOffsetX();
+let lastAppliedWorldOffsetY = getWorldOffsetY();
+
+function applyWorldOffsetDelta(dx, dy) {
+    if (!dx && !dy) return;
+
+    // Keep player anchored to the same location on the world map.
+    currentX += dx;
+    currentY += dy;
+    applyValues();
+
+    // Shift all NPC runtime positions and their authored data attributes.
+    for (const id of Object.keys(squareStates || {})) {
+        const s = squareStates[id];
+        if (!s) continue;
+        s.x += dx;
+        s.y += dy;
+        if (s.el) {
+            s.el.style.left = `${Math.round(s.x)}px`;
+            s.el.style.top = `${Math.round(s.y)}px`;
+            if (s.el.dataset) {
+                s.el.dataset.x = String(Math.round((parseFloat(s.el.dataset.x) || 0) + dx));
+                s.el.dataset.y = String(Math.round((parseFloat(s.el.dataset.y) || 0) + dy));
+            }
+        }
+    }
+
+    // Keep the coop area aligned too (style + dataset + in-memory rect).
+    const coopEl = document.getElementById('CoopArea');
+    if (coopEl?.dataset) {
+        const nextX = (parseFloat(coopEl.dataset.x) || 0) + dx;
+        const nextY = (parseFloat(coopEl.dataset.y) || 0) + dy;
+        coopEl.dataset.x = String(Math.round(nextX));
+        coopEl.dataset.y = String(Math.round(nextY));
+        coopEl.style.left = `${Math.round(nextX)}px`;
+        coopEl.style.top = `${Math.round(nextY)}px`;
+    }
+
+    if (window.CoopArea) {
+        window.CoopArea.x += dx;
+        window.CoopArea.y += dy;
+    }
+    if (typeof DEFAULT_COOP_AREA === 'object' && DEFAULT_COOP_AREA) {
+        DEFAULT_COOP_AREA.x += dx;
+        DEFAULT_COOP_AREA.y += dy;
+    }
+}
+
+function getWorldBounds(spriteSize = 0) {
+    const worldOffsetX = getWorldOffsetX();
+    const worldOffsetY = getWorldOffsetY();
+    const worldPxW = getVar('--worldWidth', 0);
+    const worldPxH = getVar('--worldHeight', 0);
+    const inset = Math.max(0, Number(spriteSize) || 0);
+    return {
+        minX: worldOffsetX,
+        minY: worldOffsetY,
+        maxX: worldOffsetX + Math.max(0, worldPxW - inset),
+        maxY: worldOffsetY + Math.max(0, worldPxH - inset),
+    };
+}
+
+function clampToWorldMap(arenaX, arenaY, spriteSize = 0) {
+    const bounds = getWorldBounds(spriteSize);
+    return {
+        x: Math.max(bounds.minX, Math.min(arenaX, bounds.maxX)),
+        y: Math.max(bounds.minY, Math.min(arenaY, bounds.maxY)),
+    };
+}
+
+function syncResponsiveOffsets() {
+    const prevWorldOffsetX = getWorldOffsetX();
+    const prevWorldOffsetY = getWorldOffsetY();
+
+    const scaleX = window.innerWidth / OFFSET_BASE_VIEWPORT_WIDTH;
+    const scaleY = window.innerHeight / OFFSET_BASE_VIEWPORT_HEIGHT;
+    const movementScale = movementReduction ? MOVEMENT_REDUCTION_SCALE : 1;
+
+    const worldOffsetX = Math.round(BASE_WORLD_OFFSET_X * scaleX);
+    const worldOffsetY = Math.round(BASE_WORLD_OFFSET_Y * scaleY);
+    const arenaOffsetX = Math.round(BASE_ARENA_OFFSET_X * scaleX * movementScale);
+    const arenaOffsetY = Math.round(BASE_ARENA_OFFSET_Y * scaleY);
+
+    root.style.setProperty('--worldOffsetX', `${worldOffsetX}px`);
+    root.style.setProperty('--worldOffsetY', `${worldOffsetY}px`);
+    root.style.setProperty('--arenaOffsetX', `${arenaOffsetX}px`);
+    root.style.setProperty('--arenaOffsetY', `${arenaOffsetY}px`);
+
+    const dx = worldOffsetX - prevWorldOffsetX;
+    const dy = worldOffsetY - prevWorldOffsetY;
+    applyWorldOffsetDelta(dx, dy);
+
+    lastAppliedWorldOffsetX = worldOffsetX;
+    lastAppliedWorldOffsetY = worldOffsetY;
+}
 
 function isBlockedAt(arenaX, arenaY) {
     if (!hitboxReady || !hitboxCtx) return false;
@@ -63,10 +176,13 @@ function isBlockedAt(arenaX, arenaY) {
     // Convert arena coords to hitbox image coords
     const worldPxW = parsePx(getComputedStyle(root).getPropertyValue('--worldWidth'))  || hitboxCanvas.width;
     const worldPxH = parsePx(getComputedStyle(root).getPropertyValue('--worldHeight')) || hitboxCanvas.height;
-    const imgX = Math.round((arenaX - WORLD_MAP_OFFSET_X) / worldPxW  * hitboxCanvas.width);
-    const imgY = Math.round((arenaY - WORLD_MAP_OFFSET_Y) / worldPxH * hitboxCanvas.height);
+    const worldOffsetX = getWorldOffsetX();
+    const worldOffsetY = getWorldOffsetY();
+    const imgX = Math.round((arenaX - worldOffsetX) / worldPxW  * hitboxCanvas.width);
+    const imgY = Math.round((arenaY - worldOffsetY) / worldPxH * hitboxCanvas.height);
 
-    if (imgX < 0 || imgY < 0 || imgX >= hitboxCanvas.width || imgY >= hitboxCanvas.height) return false;
+    // Treat anything outside the world-map image as a solid wall.
+    if (imgX < 0 || imgY < 0 || imgX >= hitboxCanvas.width || imgY >= hitboxCanvas.height) return true;
 
     const pixel = hitboxCtx.getImageData(imgX, imgY, 1, 1).data;
     // Blocked if red channel dominant and not transparent
@@ -206,6 +322,39 @@ const upBtn     = document.getElementById('upBtn');
 const downBtn   = document.getElementById('downBtn');
 const actionBtn = document.getElementById('actionBtn');
 const sprintBtn = document.getElementById('sprintBtn');
+
+const BASE_ARENA_WIDTH = 6705;
+const BASE_ARENA_HEIGHT = 5700;
+
+function syncArenaSizeForViewport() {
+    if (!arena) return;
+
+    const worldPxW = parsePx(getComputedStyle(root).getPropertyValue('--worldWidth')) || 0;
+    const worldPxH = parsePx(getComputedStyle(root).getPropertyValue('--worldHeight')) || 0;
+    const worldOffsetX = getWorldOffsetX();
+    const worldOffsetY = getWorldOffsetY();
+    const viewportBorderRatioX = parseFloat(getComputedStyle(root).getPropertyValue('--viewportBorderRatioX')) || 0.65;
+    const viewportBorderRatioY = parseFloat(getComputedStyle(root).getPropertyValue('--viewportBorderRatioY')) || 0.65;
+
+    const baseRightBorder = Math.max(0, BASE_ARENA_WIDTH - (BASE_WORLD_OFFSET_X + worldPxW));
+    const baseBottomBorder = Math.max(0, BASE_ARENA_HEIGHT - (BASE_WORLD_OFFSET_Y + worldPxH));
+
+    const viewportRightBorder = Math.round(window.innerWidth * viewportBorderRatioX);
+    const viewportBottomBorder = Math.round(window.innerHeight * viewportBorderRatioY);
+
+    const requiredRightBorder = Math.max(baseRightBorder, viewportRightBorder);
+    const requiredBottomBorder = Math.max(baseBottomBorder, viewportBottomBorder);
+
+    const widthByWorld = worldOffsetX + worldPxW + requiredRightBorder;
+    const heightByWorld = worldOffsetY + worldPxH + requiredBottomBorder;
+
+    // Keep arena larger than viewport so camera can always travel.
+    const widthByViewport = window.innerWidth + Math.round(window.innerWidth * 0.25);
+    const heightByViewport = window.innerHeight + Math.round(window.innerHeight * 0.25);
+
+    arena.style.width = `${Math.ceil(Math.max(BASE_ARENA_WIDTH, widthByWorld, widthByViewport))}px`;
+    arena.style.height = `${Math.ceil(Math.max(BASE_ARENA_HEIGHT, heightByWorld, heightByViewport))}px`;
+}
 
 // ---------------------------------------------------------------------------
 //  Player sprite animation
@@ -816,6 +965,8 @@ function setMovementReduction(value) {
     const next = Boolean(value);
     if (next === movementReduction) return;
     movementReduction = next;
+    syncResponsiveOffsets();
+    syncArenaSizeForViewport();
     applyMovementReductionVisualState();
     applyMovementReductionNpcState();
 }
@@ -1421,6 +1572,8 @@ function positionTomeboy() {
 }
 
 window.addEventListener('resize', () => {
+    syncResponsiveOffsets();
+    syncArenaSizeForViewport();
     positionTomeboy();
     positionButtonControls();
 });
@@ -1485,9 +1638,11 @@ function vpToArena(vpX, vpY) {
 
 // Find the nearest non-blocked position within a search radius
 function findNearestValidPosition(arenaX, arenaY, spriteSize) {
-    const origin = clampToArena(arenaX, arenaY, spriteSize);
+    const worldClamped = clampToWorldMap(arenaX, arenaY, spriteSize);
+    const origin = clampToArena(worldClamped.x, worldClamped.y, spriteSize);
     function clear(px, py) {
-        const clamped = clampToArena(px, py, spriteSize);
+        const mapClamped = clampToWorldMap(px, py, spriteSize);
+        const clamped = clampToArena(mapClamped.x, mapClamped.y, spriteSize);
         return !isSpriteFeetBlocked(clamped.x, clamped.y, spriteSize);
     }
     if (clear(origin.x, origin.y)) return origin;
@@ -1496,7 +1651,10 @@ function findNearestValidPosition(arenaX, arenaY, spriteSize) {
         for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
             const tx = origin.x + Math.cos(angle) * radius;
             const ty = origin.y + Math.sin(angle) * radius;
-            if (clear(tx, ty)) return clampToArena(tx, ty, spriteSize);
+            if (clear(tx, ty)) {
+                const mapClamped = clampToWorldMap(tx, ty, spriteSize);
+                return clampToArena(mapClamped.x, mapClamped.y, spriteSize);
+            }
         }
     }
     return origin; // give up, return original
@@ -1869,9 +2027,13 @@ function loop(timestamp) {
 // ---------------------------------------------------------------------------
 
 applyValues();
+syncResponsiveOffsets();
+syncArenaSizeForViewport();
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 window.addEventListener('load', () => {
+    syncResponsiveOffsets();
+    syncArenaSizeForViewport();
     positionTomeboy();
     positionButtonControls();
     centerCameraOnPlayer();

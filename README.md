@@ -81,3 +81,33 @@ Mobile Nightmode will probably just dim the sprites inside the screen.
 - After killing all other NPCs the Player can now attack the guide who's shield wore off. Doing so will give some dialogue and then force the player into a new page. This page will function like a RPG boss battle. If the player tries to go back to the main website, they will automatically go back to the fight (as the code to send them there hasn't ended, make system similar to mobile check).
 Upon defeating the Guide the player can return to the world which is empty. The background Music has stopped and the beaches sea is Red.
 Going back to the underground Room the player can push a restart buttons to bring the website back to the way it was before.
+
+
+
+
+
+
+
+ - LIST OF REQUIREMENTS FOR SUBMISSION
+
+ - Home Button
+ - No noticeable bugs or errors
+ - Night mode which makes things darker
+ - More NPCs (BurgerMan, Puppet, more NPCs)
+ - About, Contact, Newsletter and Projects NPCs in mobile
+ - Clearer instructions on how to navigate the website
+ - A basic website version with images and links.
+ - Clear instructions on how and what the basic website version does.
+ - Fully written Read Me
+ - Fix the goddamn 2000 lines of spaghetti code to remove pointless variables and compress everything as much as possible without losing features.
+
+ - Click to interact with NPCs (while stilling being able to drag)
+ - A guide NPC to help you navigate to places or something like a map outside the game which lets you press an option of where to go and get teleported there (can replace home button)
+
+
+
+ - CURRENT BUGS
+ - Arena size and position scales to device size.
+ - Dialouge Text and images scale to device size
+ - Two visible holes in map (Wall of halls)
+ - NPC positioning issues
