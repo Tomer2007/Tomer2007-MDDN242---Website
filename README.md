@@ -50,11 +50,20 @@ To Do list (Ranked on how long term they will be added)
 
 - Finish Adding and Spriting the NPC's in the Hall of Past Projects
 - Add About Me buttons and Contact Info Buttons, Make Settings Room with things like Night Mode and Movement Reduction
+
 - Add Nightmode: Change world Sprite Art for a night time look. Make chickens stop moving with Sleeping Sprite. Make Chicken Dialogue change to Zzzzzzz. Maybe give each NPC coffee like the coffee NPC? 
 Mobile Nightmode will probably just dim the sprites inside the screen.
+
 - Make new custom pixelated cursor whenever the player moves the cursor over the screen to show they can move NPCs, add drag sprites for each NPC, make the cursor react to being held down with a grabbing sprite, which remains as long as their dragging something (even if it goes off screen)
+
 - Add music: find something chill and royalty free, get a chiptune song for mobile, and a cozier nighttime song.
+
 -Add sound effects, give each NPC the Indie Rpg repeating audio for talking, with chickens getting the repeated sound of a chicken.
+
+-Finish the Map adding the NPC housing North, Here their will be a couple buildings with NPCs as well as a mini game section in the centre and a art gallery at the top right to show art works.
+
+
+
 -Add a home button in the constelattions which teleports player to spawn
 
 

@@ -54,8 +54,8 @@ if (worldHitboxImg && hitboxCtx) {
 const COLLISION_FEET_OFFSET = 10;
 
 // World map offset — must match .world-map top/left in styles.css
-const WORLD_MAP_OFFSET_X = 400;   // px  (matches `left: 400px` in CSS)
-const WORLD_MAP_OFFSET_Y = 600;   // px  (matches `top:  600px` in CSS)
+const WORLD_MAP_OFFSET_X = 590;   // px  (matches `left: 400px` in CSS)
+const WORLD_MAP_OFFSET_Y = -30;   // px  (matches `top:  600px` in CSS)
 
 function isBlockedAt(arenaX, arenaY) {
     if (!hitboxReady || !hitboxCtx) return false;
@@ -134,6 +134,8 @@ const TB_HOLE_CX     = 239.5;
 const TB_HOLE_CY     = 235.0;
 const TB_HOLE_HALF_W = 18.75;
 const TB_HOLE_HALF_H = 16.00;
+const MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE = 1.6;
+const MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE = 0.8;  // Smaller value = camera scrolls sooner when dragging
 
 function getTomeboySize() {
     const ctrlScale = parseFloat(getComputedStyle(root).getPropertyValue('--ctrl-scale')) || 2.8;
@@ -154,11 +156,15 @@ function getScreenHoleRect() {
         tbTop  = window.innerHeight / 2 - tbSize / 2;
     }
     const scale = tbSize / TB_NATIVE;
+    // Use drag boundary scale when actively dragging, otherwise use standard follow boundary scale
+    const movementBoundaryScale = window.MovementReduction
+        ? (dragState ? MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE : MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE)
+        : 1;
     return {
         cx:    tbLeft + TB_HOLE_CX     * scale,
         cy:    tbTop  + TB_HOLE_CY     * scale,
-        halfW: TB_HOLE_HALF_W * scale,
-        halfH: TB_HOLE_HALF_H * scale,
+        halfW: TB_HOLE_HALF_W * scale * movementBoundaryScale,
+        halfH: TB_HOLE_HALF_H * scale * movementBoundaryScale,
     };
 }
 
@@ -382,6 +388,8 @@ let npcSpawnPositionsValidated = false;
 const DEFAULT_CHICKEN_NIGHT_IDLE = 'Assets/Mobile/MobileChicken.png';
 const DEFAULT_CHICKEN_NIGHT_DIALOGUE = ['Bawk... (night mode)'];
 let isNight = false;
+let movementReduction = false;
+const MOVEMENT_REDUCTION_SCALE = 0.5;
 
 function randRange(min, max) { return Math.random() * (max - min) + min; }
 
@@ -755,11 +763,51 @@ function applyNightStateToChickens() {
     }
 }
 
+function applyMovementReductionVisualState() {
+    if (!arena) return;
+    if (movementReduction) {
+        arena.style.transformOrigin = 'top left';
+        arena.style.transform = `scale(${MOVEMENT_REDUCTION_SCALE})`;
+    } else {
+        arena.style.transform = '';
+        arena.style.transformOrigin = '';
+    }
+}
+
+function applyMovementReductionNpcState() {
+    for (const id of Object.keys(squareStates)) {
+        const s = squareStates[id];
+        if (!s) continue;
+
+        if (movementReduction) {
+            s.speed = 0;
+            s.dirX = 0;
+            s.dirY = 0;
+            s.state = 'idle';
+            s.frames = s.framesIdle;
+            s.frameIndex = 0;
+            s.frameElapsedMs = 0;
+            if (s.img && s.frames?.length) s.img.src = s.frames[0];
+        } else if (s.canMove && s.speed <= 0) {
+            s.speed = randRange(20, 60);
+        }
+    }
+}
+
+function setMovementReduction(value) {
+    const next = Boolean(value);
+    if (next === movementReduction) return;
+    movementReduction = next;
+    applyMovementReductionVisualState();
+    applyMovementReductionNpcState();
+}
+
 function setIsNight(value) {
     const next = Boolean(value);
     if (next === isNight) return;
     isNight = next;
     applyNightStateToChickens();
+    applyMovementReductionNpcState();
 }
 
 function refreshChickenCoopCounts(force = false) {
@@ -785,6 +833,7 @@ function refreshChickenCoopCounts(force = false) {
 }
 
 window.setIsNight = setIsNight;
+window.setMovementReduction = setMovementReduction;
 
 try {
     Object.defineProperty(window, 'isNight', {
@@ -794,6 +843,16 @@ try {
     });
 } catch (_err) {
     window.isNight = isNight;
+}
+
+try {
+    Object.defineProperty(window, 'MovementReduction', {
+        configurable: true,
+        get() { return movementReduction; },
+        set(value) { setMovementReduction(value); }
+    });
+} catch (_err) {
+    window.MovementReduction = movementReduction;
 }
 
 function setDialogueFont(url, fontFamily) {
@@ -1097,6 +1156,19 @@ function updateSquares(dt) {
         const spriteSize = Math.max(el.offsetWidth || 0, el.offsetHeight || 0);
         const isDragged = dragState?.type === 'npc' && dragState.id === id;
 
+        if (movementReduction && !isDragged) {
+            s.speed = 0;
+            s.dirX = 0;
+            s.dirY = 0;
+            if (s.state !== 'idle') {
+                s.state = 'idle';
+                s.frames = s.framesIdle;
+                s.frameIndex = 0;
+                s.frameElapsedMs = 0;
+                if (s.img && s.frames?.length) s.img.src = s.frames[0];
+            }
+        }
+
         if (!isDragged && spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
             const unstuck = findNearestValidPosition(s.x, s.y, spriteSize);
             const clamped = clampToArena(unstuck.x, unstuck.y, spriteSize);
@@ -1128,7 +1200,7 @@ function updateSquares(dt) {
         }
 
         // ── Wander AI (only for NPCs with data-can-move="true") ─────────────
-        if (s.canMove && !s.interactedPaused && !isDragged) {
+        if (s.canMove && !s.interactedPaused && !isDragged && !movementReduction) {
             s.timerMs -= dt * 1000;
             if (s.timerMs <= 0) {
                 if (s.state === 'idle') {
@@ -1195,6 +1267,8 @@ function updateSquares(dt) {
         if (s.img) s.img.style.setProperty('--npcFlip', s.lastDirection === 'left' ? -1 : 1);
     }
 }
+
+applyMovementReductionVisualState();
 
 // ---------------------------------------------------------------------------
 //  Depth sorting
@@ -1380,9 +1454,14 @@ function viewportToArena(vpX, vpY) {
 function vpToArena(vpX, vpY) {
     if (!arena) return { x: vpX, y: vpY };
     const r = arena.getBoundingClientRect();
+    
+    // Account for CSS transform scale on the arena
+    // When arena has transform: scale(0.5), we need to divide by 0.5 to get true arena coords
+    const scale = arena.offsetWidth > 0 ? r.width / arena.offsetWidth : 1;
+    
     return {
-        x: vpX - r.left,
-        y: vpY - r.top,
+        x: (vpX - r.left) / scale,
+        y: (vpY - r.top) / scale,
     };
 }
 

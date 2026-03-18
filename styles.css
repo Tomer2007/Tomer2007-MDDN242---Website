@@ -34,8 +34,8 @@
   --playerFlip:  1;
   --playerScale: 1;
   
-  --buttonX:     2650px; /* not buttons location but player */
-  --buttonY:     2300px;
+  --buttonX:     2840px; /* not buttons location but player */
+  --buttonY:     1800px;
   /* if isMobile {
      --control-size: clamp(60px, 7.5vw, 80px);
   }
@@ -52,9 +52,9 @@
 
 body {
   margin: 0;
-  padding: 40px;
+  padding: 0px;
   font-family: Arial, sans-serif;
-  background: #1d1747;
+  background: #154da1;
   /* Zoom is applied here by script.js at runtime.
      A default of 1 ensures nothing breaks if JS hasn't run yet. */
   zoom: 1;
@@ -67,14 +67,14 @@ body {
 .title {
   color: #15267a;
   margin-bottom: 4px;
-  font-weight: 500;
+  font-weight: 50;
 }
 
 .underline {
   width: 200px;
-  height: 2px;
+  height: 0px;
   background: #d7d7f5;
-  margin-bottom: 50px;
+  margin-bottom: 0px;
 }
 
 /* =============================================================================
@@ -83,8 +83,8 @@ body {
 
 .arena {
   position: relative;
-  width: 5600px;
-  height: 5600px;
+  width: 5705px;
+  height: 4700px;
   background: linear-gradient(180deg, rgba(32, 21, 59, 0.03), rgba(0,0,0,0.02));
   border: 1px dashed rgba(0,0,0,0.06);
   margin: 0px 0;
@@ -96,8 +96,8 @@ body {
 
 .world-map {
   position: absolute;
-  top: 600px;
-  left: 400px;
+  top: -30px;
+  left: 590px;
 
   width:  var(--worldWidth);
   height: var(--worldHeight);
