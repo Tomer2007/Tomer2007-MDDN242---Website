@@ -11,6 +11,18 @@
   --zoom-desktop: 1.0;   /* zoom level on desktop / large screens */
   --zoom-mobile:  1;   /* zoom level on mobile  / small screens  */
 
+    /* ── MAP POPUP ─────────────────────────────────────────────────────────────
+      Base popup image size and independent close-hitbox X/Y scale.
+      close area scale: 1 = full image box, 0.9 = 90%, etc.
+    */
+    --mapPopupWidth: 1500px;
+    --mapPopupHeight: 960px;
+    --mapPopupCloseAreaScaleX: 0.8;
+    --mapPopupCloseAreaScaleY: 0.8;
+    --mapPopupJumpDebugVisible: 0;
+    --mapPopupJumpDebugBorderColor: rgba(90, 210, 255, 0.95);
+    --mapPopupJumpDebugFillColor: rgba(90, 210, 255, 0.28);
+
   /* ── PLAYER / NPC SIZE ─────────────────────────────────────────────────────
      Shared size for the player sprite and all NPC bounding boxes.
   */
@@ -33,6 +45,7 @@
   /* Internal — set by JS at runtime, not intended to be edited here */
   --playerFlip:  1;
   --playerScale: 1;
+  --customCursorScale: 1;
   
   --buttonX:     2840px; /* not buttons location but player */
   --buttonY:     2000px;
@@ -58,6 +71,16 @@
   --arenaOffsetY: 0px;
   --viewportBorderRatioX: 0.85;
   --viewportBorderRatioY: 0.65;
+
+  /* Temporary debug visibility for the TomeBoy MapArea hotspot.
+     Set --mapAreaDebugVisible to 0 when alignment is finished. */
+  --mapAreaDebugVisible: 1;
+  --mapAreaDebugBorderColor: rgba(255, 245, 120, 0.95);
+  --mapAreaDebugFillColor: rgba(255, 245, 120, 0.25);
+  --tomeboyNightDim: 1;
+  --controllerNightDim: 1;
+  --worldMapNightDim: 1;
+
 }
 
 /* =============================================================================
@@ -78,6 +101,40 @@ body {
   /* Zoom is applied here by script.js at runtime.
      A default of 1 ensures nothing breaks if JS hasn't run yet. */
   zoom: 1;
+}
+
+body.custom-cursor-active,
+body.custom-cursor-active * {
+  cursor: none !important;
+}
+
+.custom-cursor-sprite {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%) scale(var(--customCursorScale, 1));
+  pointer-events: none;
+  z-index: 2147483649;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  user-select: none;
+}
+
+/* =============================================================================
+   TEXT SELECTION
+   ============================================================================= */
+/* Hide the blue text selection highlight across the entire page.
+   The yellow NPC proximity highlight (box-shadow) will remain unaffected. */
+::selection {
+  background: transparent;
+  color: inherit;
+}
+
+::moz-selection {
+  background: transparent;
+  color: inherit;
 }
 
 /* =============================================================================
@@ -126,6 +183,8 @@ body {
   object-fit: fill;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  filter: brightness(var(--worldMapNightDim, 1));
+  transition: filter 200ms linear;
   pointer-events: none;
   z-index: 0;
 }
@@ -210,6 +269,8 @@ body {
      the button sprite's pixel density. Width = height always (square). */
   width:  calc(3840px * var(--ctrl-scale) / 2);
   height: calc(3840px * var(--ctrl-scale) / 2);
+  filter: brightness(var(--tomeboyNightDim, 1));
+  transition: filter 200ms linear;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none;
@@ -222,6 +283,58 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none; /* Remove this — children need pointer events */
+}
+
+.map-area,
+.guide-area {
+  position: fixed;
+  z-index: 9100;
+  border: calc(2px * var(--mapAreaDebugVisible)) solid var(--mapAreaDebugBorderColor);
+  background: var(--mapAreaDebugFillColor);
+  box-sizing: border-box;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  opacity: calc(0.9 * var(--mapAreaDebugVisible));
+}
+
+.map-popup-image {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  width: var(--mapPopupWidth, 1500px);
+  height: var(--mapPopupHeight, 960px);
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: grab;
+  user-select: none;
+}
+
+.map-popup-resize-handle {
+  position: fixed;
+  z-index: 10001;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, transparent 50%, rgba(200, 200, 200, 0.8) 50%);
+  cursor: se-resize;
+  pointer-events: auto;
+}
+
+.map-popup-jump-btn {
+  position: fixed;
+  z-index: 10001;
+  border: calc(2px * var(--mapPopupJumpDebugVisible)) solid var(--mapPopupJumpDebugBorderColor);
+  background: var(--mapPopupJumpDebugFillColor);
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  opacity: calc(0.9 * var(--mapPopupJumpDebugVisible));
 }
 
 .button-controls {
@@ -249,6 +362,8 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+  filter: brightness(var(--controllerNightDim, 1));
+  transition: filter 200ms linear;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: none; /* clicks fall through to the buttons underneath */

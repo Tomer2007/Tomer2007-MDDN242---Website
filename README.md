@@ -107,7 +107,9 @@ Going back to the underground Room the player can push a restart buttons to brin
 
 
  - CURRENT BUGS
- - Arena size and position scales to device size.
+
  - Dialouge Text and images scale to device size
- - Two visible holes in map (Wall of halls)
- - NPC positioning issues
+- Coop area positioning
+
+- WORKING ON
+- Home Button + Clearer instructions

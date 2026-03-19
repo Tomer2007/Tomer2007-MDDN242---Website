@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide Book</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Verdana", sans-serif;
+      background: linear-gradient(180deg, #f6f7fb 0%, #e8edf8 100%);
+      color: #0f042c;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: #140834;
+      border: 1px solid rgba(27, 37, 56, 0.12);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 10px 28px rgba(20, 35, 65, 0.10);
+    }
+
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0 0 14px 0;
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .book-page {
+      background-image: url('Assets/Mobile/Tomer\'sWebsiteMobileMap.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 14px;
+      padding: 60px 40px;
+      margin: 24px 0;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .book-page::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+
+    .book-page p {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 28px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      max-width: 500px;
+      margin: 0;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      font-weight: 700;
+      color: #214f9d;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card" aria-labelledby="guide-book-title">
+      <h1 id="guide-book-title">Guide Book</h1>
+    </section>
+
+    <div class="book-page">
+      <p>
+        Welcome to the guide book page. You can put instructions, gameplay hints,
+        controls, and navigation tips here.
+      </p>
+    </div>
+
+    <div class="book-page">
+      <p>
+        This is a basic layout page that you can expand with sections,
+        screenshots, links, or a full table of contents later.
+      </p>
+    </div>
+
+    <section class="card">
+      <a class="back-link" href="index.html">Back to Main Website</a>
+    </section>
+  </main>
+</body>
+</html>

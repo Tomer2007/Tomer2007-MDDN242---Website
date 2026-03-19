@@ -8,6 +8,80 @@
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 const root = document.documentElement;
+const CUSTOM_CURSOR_IDLE_SRC = 'Assets/CustomCursor1.png';
+const CUSTOM_CURSOR_PRESSED_SRC = 'Assets/CustomCursor2.png';
+const CUSTOM_CURSOR_BOUNDS_SCALE_X = 1.45;
+const CUSTOM_CURSOR_BOUNDS_SCALE_Y = 1.55;
+let customCursorEl = null;
+let customCursorPressed = false;
+
+function isFinePointerDevice() {
+    return window.matchMedia && window.matchMedia('(pointer:fine)').matches;
+}
+
+function setCustomCursorVisible(visible) {
+    if (!customCursorEl) return;
+    customCursorEl.style.display = visible ? 'block' : 'none';
+    document.body.classList.toggle('custom-cursor-active', visible);
+}
+
+function refreshCustomCursorImage() {
+    if (!customCursorEl) return;
+    customCursorEl.src = customCursorPressed ? CUSTOM_CURSOR_PRESSED_SRC : CUSTOM_CURSOR_IDLE_SRC;
+}
+
+function onCustomCursorMove(e) {
+    if (!customCursorEl) return;
+    customCursorEl.style.left = `${Math.round(e.clientX)}px`;
+    customCursorEl.style.top = `${Math.round(e.clientY)}px`;
+
+    const hole = getScreenHoleRect();
+    const cursorHalfW = hole.halfW * CUSTOM_CURSOR_BOUNDS_SCALE_X;
+    const cursorHalfH = hole.halfH * CUSTOM_CURSOR_BOUNDS_SCALE_Y;
+    const insideHole = Math.abs(e.clientX - hole.cx) <= cursorHalfW
+        && Math.abs(e.clientY - hole.cy) <= cursorHalfH;
+    setCustomCursorVisible(insideHole);
+}
+
+function onCustomCursorDown() {
+    customCursorPressed = true;
+    refreshCustomCursorImage();
+}
+
+function onCustomCursorUp() {
+    customCursorPressed = false;
+    refreshCustomCursorImage();
+}
+
+function onCustomCursorLeaveWindow() {
+    customCursorPressed = false;
+    refreshCustomCursorImage();
+    setCustomCursorVisible(false);
+}
+
+function initCustomCursor() {
+    if (!isFinePointerDevice()) return;
+    if (customCursorEl) return;
+
+    const img = document.createElement('img');
+    img.className = 'custom-cursor-sprite';
+    img.src = CUSTOM_CURSOR_IDLE_SRC;
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    img.draggable = false;
+    img.style.display = 'none';
+    document.body.appendChild(img);
+    customCursorEl = img;
+
+    document.addEventListener('pointermove', onCustomCursorMove, true);
+    document.addEventListener('pointerdown', onCustomCursorDown, true);
+    document.addEventListener('pointerup', onCustomCursorUp, true);
+    document.addEventListener('pointercancel', onCustomCursorUp, true);
+    document.addEventListener('mouseleave', onCustomCursorLeaveWindow, true);
+    window.addEventListener('blur', onCustomCursorLeaveWindow);
+}
+
+initCustomCursor();
 
 // ---------------------------------------------------------------------------
 //  Helpers
@@ -323,12 +397,15 @@ const pressed = { left: false, right: false, up: false, down: false };
 
 const player    = document.getElementById('player');
 const arena     = document.getElementById('arena');
+const worldMapEl = document.querySelector('.world-map');
 const leftBtn   = document.getElementById('leftBtn');
 const rightBtn  = document.getElementById('rightBtn');
 const upBtn     = document.getElementById('upBtn');
 const downBtn   = document.getElementById('downBtn');
 const actionBtn = document.getElementById('actionBtn');
 const sprintBtn = document.getElementById('sprintBtn');
+const DAY_WORLD_MAP_SRC = worldMapEl?.getAttribute('src') || "Assets/Maps/Tomer'sWebsiteFinalWorld2.png";
+const NIGHT_WORLD_MAP_SRC = "Assets/Nighttime/Tomer'sWebsiteFinalWorld2Night.png";
 
 const BASE_ARENA_WIDTH = 6705;
 const BASE_ARENA_HEIGHT = 5700;
@@ -939,8 +1016,24 @@ function applyNightStateToChickens() {
     }
 }
 
+function applyNightStateToWorldMap() {
+    if (!worldMapEl) return;
+    const nextSrc = isNight ? NIGHT_WORLD_MAP_SRC : DAY_WORLD_MAP_SRC;
+    if (worldMapEl.getAttribute('src') === nextSrc) return;
+    worldMapEl.setAttribute('src', nextSrc);
+}
+
+function applyNightStateToTomeboy() {
+    root.style.setProperty('--tomeboyNightDim', isNight ? '0.72' : '1');
+    root.style.setProperty('--controllerNightDim', isNight ? '0.72' : '1');
+    root.style.setProperty('--worldMapNightDim', isNight ? '0.82' : '1');
+}
+
+applyNightStateToTomeboy();
+
 function applyMovementReductionVisualState() {
     root.style.setProperty('--seaTileScale', movementReduction ? String(MOVEMENT_REDUCTION_SCALE) : '1');
+    root.style.setProperty('--customCursorScale', movementReduction ? String(MOVEMENT_REDUCTION_SCALE) : '1');
     if (!arena) return;
     if (movementReduction) {
         arena.style.transformOrigin = 'top left';
@@ -985,6 +1078,8 @@ function setIsNight(value) {
     const next = Boolean(value);
     if (next === isNight) return;
     isNight = next;
+    applyNightStateToWorldMap();
+    applyNightStateToTomeboy();
     applyNightStateToChickens();
     applyMovementReductionNpcState();
 }
@@ -1078,8 +1173,16 @@ function hideDialogue() {
 
     if (_typewriterHandle) { clearTimeout(_typewriterHandle); _typewriterHandle = null; }
     _typewriterCancelled = true;
+    document.removeEventListener('pointerdown', closeDialogueOnClickOutside, true);
     dialogueNode.remove();
     dialogueNode = null;
+}
+
+function closeDialogueOnClickOutside(e) {
+    if (!dialogueNode) return;
+    if (!dialogueNode.contains(e.target)) {
+        hideDialogue();
+    }
 }
 
 // Compute and apply the dialogue box position above a given square element.
@@ -1192,6 +1295,8 @@ function showDialogueForSquare(squareEl) {
     // Tap same square again → close
     if (dialogueNode.dataset.squareId === id) { hideDialogue(); return; }
 
+    document.addEventListener('pointerdown', closeDialogueOnClickOutside, true);
+
     const rawText = getNextDialogueText(id);
     renderDialogueContent(rawText);
 
@@ -1278,8 +1383,11 @@ function updateOverlap() {
     if (found !== currentOverlapSquare) {
         currentOverlapSquare?.classList.remove('highlight');
         currentOverlapSquare = found;
-        if (found) { found.classList.add('highlight'); player.classList.add('overlap'); }
+        if (found && !dragState && !pendingDrag) { found.classList.add('highlight'); player.classList.add('overlap'); }
         else        { player.classList.remove('overlap'); }
+    }
+    if ((dragState || pendingDrag) && currentOverlapSquare) {
+        currentOverlapSquare.classList.remove('highlight');
     }
 }
 
@@ -1541,6 +1649,367 @@ document.addEventListener('keyup', (e) => {
 
 const controlsEl = document.getElementById('button-controls');
 const tomeboyEl  = document.getElementById('tomeboy-frame');
+const mapAreaEl  = document.getElementById('MapArea');
+const guideAreaEl = document.getElementById('GuideArea');
+const TOMEBOY_ANIMATION_FPS = 0.5;
+// Hotspot around the white "MAP" object to the left of the TomeBoy centre.
+const MAP_AREA_NATIVE_X = 160;
+const MAP_AREA_NATIVE_Y = 210;
+const MAP_AREA_NATIVE_SIZE = 42;
+// Hotspot around the right-side guide/book area on the TomeBoy.
+// Edit these values to move/resize the GuideArea hitbox.
+const GUIDE_AREA_NATIVE_X = 288;
+const GUIDE_AREA_NATIVE_Y = 228;
+const GUIDE_AREA_NATIVE_WIDTH = 37;
+const GUIDE_AREA_NATIVE_HEIGHT = 46;
+const GUIDE_BOOK_URL = 'guide_book.html';
+const MAP_POPUP_IMAGE_SRC = "Assets/WebsiteMap.png";
+const MAP_POPUP_JUMP_POINTS = [
+    // x/y/width/height are percentages of popup image bounds (0..1)
+    // buttonX/buttonY are applied to --buttonX and --buttonY when pressed.
+    { id: 'map-jump-1', x: 0.10, y: 0.24, width: 0.17, height: 0.24, buttonX: 1650, buttonY: 1003 }, //Houses
+    { id: 'map-jump-2', x: 0.32, y: 0.20, width: 0.20, height: 0.22, buttonX: 2645, buttonY: 755 }, // Mini Games
+    { id: 'map-jump-3', x: 0.63, y: 0.22, width: 0.22, height: 0.16, buttonX: 3735, buttonY: 533 }, // Gallery
+    { id: 'map-jump-4', x: 0.37, y: 0.45, width: 0.24, height: 0.28, buttonX: 3271, buttonY: 2115 }, // Spawn House
+    { id: 'map-jump-5', x: 0.65, y: 0.40, width: 0.21, height: 0.33, buttonX: 4876, buttonY: 1865 }, // Hall of past projects
+];
+let tomeboyAnimationTimer = null;
+let mapPopupImageEl = null;
+let mapPopupResizeHandleEl = null;
+let mapPopupJumpButtonEls = [];
+let mapPopupResizeState = null;
+
+function getMapPopupCursorDebugData(clientX, clientY) {
+    const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize')) || 0;
+
+    // If popup is open, map click to popup-normalized coordinates.
+    if (mapPopupImageEl) {
+        const rect = mapPopupImageEl.getBoundingClientRect();
+        const nx = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+        const ny = Math.max(0, Math.min(1, (clientY - rect.top) / Math.max(1, rect.height)));
+
+        const bounds = getWorldBounds(spriteSize);
+        const buttonX = Math.round(bounds.minX + nx * (bounds.maxX - bounds.minX));
+        const buttonY = Math.round(bounds.minY + ny * (bounds.maxY - bounds.minY));
+
+        return {
+            mode: 'popup',
+            buttonX,
+            buttonY,
+            normalizedX: Number(nx.toFixed(4)),
+            normalizedY: Number(ny.toFixed(4)),
+            popupX: Math.round(clientX - rect.left),
+            popupY: Math.round(clientY - rect.top),
+        };
+    }
+
+    // Popup closed: map click directly into world/arena coordinates.
+    const arenaPos = vpToArena(clientX, clientY);
+    const clamped = clampToWorldMap(arenaPos.x, arenaPos.y, spriteSize);
+    return {
+        mode: 'world',
+        buttonX: Math.round(clamped.x),
+        buttonY: Math.round(clamped.y),
+        viewportX: Math.round(clientX),
+        viewportY: Math.round(clientY),
+        arenaX: Math.round(clamped.x),
+        arenaY: Math.round(clamped.y),
+    };
+}
+
+function onMapPopupCursorMoveDebug(e) {
+    const data = getMapPopupCursorDebugData(e.clientX, e.clientY);
+    if (!data) return;
+    window.mapPopupCursorDebug = data;
+}
+
+function onGlobalCursorDebugLog(e) {
+    const data = getMapPopupCursorDebugData(e.clientX, e.clientY);
+    if (!data) return;
+
+    window.mapPopupCursorDebug = data;
+    if (data.mode === 'popup') {
+        console.log(`[MapPopup Cursor] buttonX=${data.buttonX}, buttonY=${data.buttonY}, normalizedX=${data.normalizedX}, normalizedY=${data.normalizedY}, popupX=${data.popupX}, popupY=${data.popupY}`);
+    } else {
+        console.log(`[Map Cursor] buttonX=${data.buttonX}, buttonY=${data.buttonY}, viewportX=${data.viewportX}, viewportY=${data.viewportY}, arenaX=${data.arenaX}, arenaY=${data.arenaY}`);
+    }
+}
+
+document.addEventListener('pointerdown', onGlobalCursorDebugLog, true);
+
+function closeMapPopup() {
+    if (!mapPopupImageEl) return;
+    mapPopupImageEl.removeEventListener('pointermove', onMapPopupCursorMoveDebug);
+    mapPopupImageEl.remove();
+    mapPopupResizeHandleEl?.remove();
+    mapPopupResizeHandleEl = null;
+    mapPopupJumpButtonEls.forEach((btn) => btn.remove());
+    mapPopupJumpButtonEls = [];
+    mapPopupImageEl = null;
+    if (mapPopupResizeState) {
+        document.removeEventListener('pointermove', onMapPopupResize);
+        document.removeEventListener('pointerup', endMapPopupResize);
+        mapPopupResizeState = null;
+    }
+    window.removeEventListener('resize', positionMapPopupUi);
+    document.removeEventListener('pointerdown', onGlobalPointerDownCloseMapPopup, true);
+}
+
+function applyMapPopupJump(point) {
+    if (!point) return;
+    currentX = Number(point.buttonX) || currentX;
+    currentY = Number(point.buttonY) || currentY;
+
+    const spriteSize = parsePx(getComputedStyle(root).getPropertyValue('--playerSize')) || 0;
+    if (spriteSize > 0) {
+        const valid = findNearestValidPosition(currentX, currentY, spriteSize);
+        currentX = valid.x;
+        currentY = valid.y;
+    }
+    applyValues();
+
+    // Force a one-time hard re-centre immediately after jumping.
+    forceCenterCameraNextFrame = true;
+    centerCameraOnPlayer();
+    cameraTargetX = window.scrollX;
+    cameraTargetY = window.scrollY;
+    cameraSnapActive = false;
+}
+
+function createMapPopupJumpButtons() {
+    mapPopupJumpButtonEls.forEach((btn) => btn.remove());
+    mapPopupJumpButtonEls = MAP_POPUP_JUMP_POINTS.map((point, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'map-popup-jump-btn';
+        btn.dataset.index = String(index);
+        btn.dataset.jumpId = point.id;
+        btn.setAttribute('aria-label', `Map jump ${index + 1}`);
+        btn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            applyMapPopupJump(point);
+        });
+        document.body.appendChild(btn);
+        return btn;
+    });
+}
+
+function positionMapPopupUi() {
+    if (!mapPopupImageEl) return;
+    const rect = mapPopupImageEl.getBoundingClientRect();
+
+    if (mapPopupResizeHandleEl) {
+        const handleSize = mapPopupResizeHandleEl.offsetWidth || 20;
+        mapPopupResizeHandleEl.style.left = `${Math.round(rect.right - handleSize)}px`;
+        mapPopupResizeHandleEl.style.top = `${Math.round(rect.bottom - handleSize)}px`;
+    }
+
+    mapPopupJumpButtonEls.forEach((btn) => {
+        const idx = Number(btn.dataset.index);
+        const point = MAP_POPUP_JUMP_POINTS[idx];
+        if (!point) return;
+
+        const x = rect.left + rect.width * point.x;
+        const y = rect.top + rect.height * point.y;
+        const w = Math.max(8, rect.width * point.width);
+        const h = Math.max(8, rect.height * point.height);
+
+        btn.style.left = `${Math.round(x)}px`;
+        btn.style.top = `${Math.round(y)}px`;
+        btn.style.width = `${Math.round(w)}px`;
+        btn.style.height = `${Math.round(h)}px`;
+    });
+}
+
+function onGlobalPointerDownCloseMapPopup(e) {
+    if (!mapPopupImageEl) return;
+    const target = e.target;
+    if (target === mapPopupResizeHandleEl) return;
+    if (target instanceof Element && target.closest('.map-popup-jump-btn')) return;
+
+    const rect = mapPopupImageEl.getBoundingClientRect();
+
+    const closeAreaScaleX = parseFloat(getComputedStyle(root).getPropertyValue('--mapPopupCloseAreaScaleX')) || 1;
+    const closeAreaScaleY = parseFloat(getComputedStyle(root).getPropertyValue('--mapPopupCloseAreaScaleY')) || 1;
+
+    const halfW = Math.max(1, rect.width * 0.5 * closeAreaScaleX);
+    const halfH = Math.max(1, rect.height * 0.5 * closeAreaScaleY);
+    const cx = rect.left + rect.width * 0.5;
+    const cy = rect.top + rect.height * 0.5;
+
+    const insideCloseKeepOpenArea = Math.abs(e.clientX - cx) <= halfW && Math.abs(e.clientY - cy) <= halfH;
+    if (insideCloseKeepOpenArea) return;
+    closeMapPopup();
+}
+
+function startMapPopupResize(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!mapPopupImageEl) return;
+    
+    mapPopupResizeState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: mapPopupImageEl.offsetWidth,
+        startHeight: mapPopupImageEl.offsetHeight,
+    };
+    
+    document.addEventListener('pointermove', onMapPopupResize);
+    document.addEventListener('pointerup', endMapPopupResize);
+}
+
+function onMapPopupResize(e) {
+    if (!mapPopupResizeState || !mapPopupImageEl) return;
+    
+    const deltaX = e.clientX - mapPopupResizeState.startX;
+    const deltaY = e.clientY - mapPopupResizeState.startY;
+    
+    let newWidth = mapPopupResizeState.startWidth + deltaX;
+    let newHeight = mapPopupResizeState.startHeight + deltaY;
+    
+    // Minimum size constraints
+    newWidth = Math.max(200, newWidth);
+    newHeight = Math.max(150, newHeight);
+    
+    // Maximum size constraints (don't exceed viewport)
+    newWidth = Math.min(window.innerWidth * 0.95, newWidth);
+    newHeight = Math.min(window.innerHeight * 0.95, newHeight);
+    
+    // Update CSS variables
+    root.style.setProperty('--mapPopupWidth', `${newWidth}px`);
+    root.style.setProperty('--mapPopupHeight', `${newHeight}px`);
+    positionMapPopupUi();
+}
+
+function endMapPopupResize() {
+    document.removeEventListener('pointermove', onMapPopupResize);
+    document.removeEventListener('pointerup', endMapPopupResize);
+    mapPopupResizeState = null;
+}
+
+function openMapPopup() {
+    if (mapPopupImageEl) return;
+    
+    const img = document.createElement('img');
+    img.className = 'map-popup-image';
+    img.src = MAP_POPUP_IMAGE_SRC;
+    img.alt = 'Expanded map';
+    img.draggable = false;
+    img.addEventListener('pointermove', onMapPopupCursorMoveDebug);
+    mapPopupImageEl = img;
+
+    const handle = document.createElement('div');
+    handle.className = 'map-popup-resize-handle';
+    handle.addEventListener('pointerdown', startMapPopupResize);
+    mapPopupResizeHandleEl = handle;
+    
+    document.body.appendChild(img);
+    document.body.appendChild(handle);
+    createMapPopupJumpButtons();
+    positionMapPopupUi();
+    window.addEventListener('resize', positionMapPopupUi);
+    document.addEventListener('pointerdown', onGlobalPointerDownCloseMapPopup, true);
+}
+
+function positionMapArea() {
+    if (!mapAreaEl) return;
+
+    let tbLeft;
+    let tbTop;
+    let tbSize;
+    const tbRect = tomeboyEl?.getBoundingClientRect();
+    if (tbRect && tbRect.width > 0) {
+        tbLeft = tbRect.left;
+        tbTop = tbRect.top;
+        tbSize = tbRect.width;
+    } else {
+        tbSize = getTomeboySize();
+        tbLeft = window.innerWidth / 2 - tbSize / 2;
+        tbTop = window.innerHeight / 2 - tbSize / 2;
+    }
+
+    const scale = tbSize / TB_NATIVE;
+    const sizePx = Math.max(12, Math.round(MAP_AREA_NATIVE_SIZE * scale));
+
+    mapAreaEl.style.left = `${Math.round(tbLeft + MAP_AREA_NATIVE_X * scale)}px`;
+    mapAreaEl.style.top = `${Math.round(tbTop + MAP_AREA_NATIVE_Y * scale)}px`;
+    mapAreaEl.style.width = `${sizePx}px`;
+    mapAreaEl.style.height = `${sizePx}px`;
+}
+
+function positionGuideArea() {
+    if (!guideAreaEl) return;
+
+    let tbLeft;
+    let tbTop;
+    let tbSize;
+    const tbRect = tomeboyEl?.getBoundingClientRect();
+    if (tbRect && tbRect.width > 0) {
+        tbLeft = tbRect.left;
+        tbTop = tbRect.top;
+        tbSize = tbRect.width;
+    } else {
+        tbSize = getTomeboySize();
+        tbLeft = window.innerWidth / 2 - tbSize / 2;
+        tbTop = window.innerHeight / 2 - tbSize / 2;
+    }
+
+    const scale = tbSize / TB_NATIVE;
+    const widthPx = Math.max(12, Math.round(GUIDE_AREA_NATIVE_WIDTH * scale));
+    const heightPx = Math.max(12, Math.round(GUIDE_AREA_NATIVE_HEIGHT * scale));
+
+    guideAreaEl.style.left = `${Math.round(tbLeft + GUIDE_AREA_NATIVE_X * scale)}px`;
+    guideAreaEl.style.top = `${Math.round(tbTop + GUIDE_AREA_NATIVE_Y * scale)}px`;
+    guideAreaEl.style.width = `${widthPx}px`;
+    guideAreaEl.style.height = `${heightPx}px`;
+}
+
+function startTomeboyAnimation() {
+    const sprite = tomeboyEl?.querySelector('.tomeboy-sprite');
+    if (!sprite || tomeboyAnimationTimer) return;
+
+    const frame1 = (sprite.getAttribute('data-anim-frame-1') || sprite.getAttribute('src') || '').trim();
+    if (!frame1) return;
+
+    const explicitFrame2 = (sprite.getAttribute('data-anim-frame-2') || '').trim();
+    const fallbackFrame2 = frame1
+        .replace('TomeBoyFinalAnim1.png', 'TomeBoyFinalAnim2.png')
+        .replace('TomeBoyFinalAnim1.png.png', 'TomeBoyFinalAnim2.png.png');
+    const frame2Candidates = [explicitFrame2, fallbackFrame2, 'Assets/TomeBoyFinalAnim2.png.png'].filter(Boolean);
+
+    let candidateIndex = 0;
+    function tryStartWithNextCandidate() {
+        if (candidateIndex >= frame2Candidates.length) return;
+        const frame2 = frame2Candidates[candidateIndex++];
+        if (!frame2 || frame2 === frame1) {
+            tryStartWithNextCandidate();
+            return;
+        }
+
+        const probe = new Image();
+        probe.onload = () => {
+            const frames = [frame1, frame2];
+            let frameIndex = 0;
+            sprite.src = frames[0];
+            const intervalMs = Math.max(100, Math.round(1000 / Math.max(0.1, TOMEBOY_ANIMATION_FPS)));
+            tomeboyAnimationTimer = window.setInterval(() => {
+                frameIndex = (frameIndex + 1) % frames.length;
+                sprite.src = frames[frameIndex];
+            }, intervalMs);
+        };
+        probe.onerror = () => {
+            tryStartWithNextCandidate();
+        };
+        probe.src = frame2;
+    }
+
+    tryStartWithNextCandidate();
+}
 
 function positionButtonControls() {
     if (!controlsEl) return;
@@ -1581,10 +2050,32 @@ function positionTomeboy() {
     tomeboyEl.style.transform = `translate(-50%, -50%)`;
 }
 
+if (mapAreaEl) {
+    mapAreaEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (mapPopupImageEl) {
+            closeMapPopup();
+            return;
+        }
+        openMapPopup();
+    });
+}
+
+if (guideAreaEl) {
+    guideAreaEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = GUIDE_BOOK_URL;
+    });
+}
+
 window.addEventListener('resize', () => {
     syncResponsiveOffsets();
     syncArenaSizeForViewport();
     positionTomeboy();
+    positionMapArea();
+    positionGuideArea();
     positionButtonControls();
 });
 // ---------------------------------------------------------------------------
@@ -1614,6 +2105,8 @@ function isAnyInputHeld() {
 // ---------------------------------------------------------------------------
 
 let dragState = null;
+let pendingDrag = null;
+const NPC_DRAG_THRESHOLD = 12; // pixels of movement before converting click to drag
 const DRAG_LERP_FACTOR = 0.18;  // Smoothing factor for drag motion (0.2 = fast, 0.1 = slow)
 // dragState = {
 //   type:       'player' | 'npc'
@@ -1708,6 +2201,21 @@ function dropDragged() {
 }
 
 function onDragPointerMove(e) {
+    // If we have a pending drag (NPC click), check if we've moved far enough to start dragging
+    if (pendingDrag && dragState === null) {
+        const dx = e.clientX - pendingDrag.initialX;
+        const dy = e.clientY - pendingDrag.initialY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > NPC_DRAG_THRESHOLD) {
+            // Movement exceeded threshold — convert pending drag to real drag
+            convertPendingDragToReal(e);
+            return;
+        }
+        // Else: still within threshold, don't create dragState yet
+        return;
+    }
+
     if (!dragState) return;
     // Store the raw cursor viewport position; target is recomputed each frame
     // so it stays correct even when the camera scrolls without cursor movement.
@@ -1744,9 +2252,42 @@ function updateDraggedMovement() {
 }
 
 function onDragPointerUp(e) {
+    // If we have a pending drag that never converted to real drag, it's a click — trigger NPC action
+    if (pendingDrag) {
+        triggerNpcAction(pendingDrag.id, pendingDrag.el);
+        pendingDrag = null;
+        window.removeEventListener('pointermove', onDragPointerMove);
+        window.removeEventListener('pointerup',   onDragPointerUp);
+        return;
+    }
+
     dropDragged();
     window.removeEventListener('pointermove', onDragPointerMove);
     window.removeEventListener('pointerup',   onDragPointerUp);
+}
+
+function convertPendingDragToReal(e) {
+    if (!pendingDrag) return;
+    const { type, id, el } = pendingDrag;
+    pendingDrag = null;
+    startDrag(e, type, id, el);
+}
+
+function triggerNpcAction(id, el) {
+    if (!el) return;
+    hideDialogue();
+
+    const state = squareStates[id];
+    if (!state) return;
+
+    // Handle button type NPCs
+    if (state.interactionType === 'button') {
+        runButtonNpcAction(state);
+        return;
+    }
+
+    // Handle dialogue type NPCs
+    showDialogueForSquare(el);
 }
 
 function startDrag(e, type, id, el) {
@@ -1792,7 +2333,16 @@ for (const { id, el } of Object.values(squareStates)) {
     el.style.cursor = 'grab';
     el.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
-        startDrag(e, 'npc', id, el);
+        // Store as pending drag; will convert to real drag if movement exceeds threshold
+        pendingDrag = {
+            type: 'npc',
+            id,
+            el,
+            initialX: e.clientX,
+            initialY: e.clientY
+        };
+        window.addEventListener('pointermove', onDragPointerMove);
+        window.addEventListener('pointerup', onDragPointerUp);
     });
 }
 
@@ -1804,6 +2354,7 @@ for (const { id, el } of Object.values(squareStates)) {
 // Target scroll position — updated every frame, applied smoothly
 let cameraTargetX = window.scrollX;
 let cameraTargetY = window.scrollY;
+let forceCenterCameraNextFrame = false;
 
 function isAnyInputHeld() {
     return pressed.left || pressed.right || pressed.up || pressed.down;
@@ -1822,6 +2373,13 @@ const CAMERA_LERP      = 10;   // smoothing — lower = smoother but more lag
 
 function updateCamera(dt) {
     if (!player) return;
+
+    if (forceCenterCameraNextFrame) {
+        centerCameraOnPlayer();
+        cameraTargetX = window.scrollX;
+        cameraTargetY = window.scrollY;
+        forceCenterCameraNextFrame = false;
+    }
 
     // Update velocity from how much the player moved this frame
     playerVelX = (currentX - prevPlayerX) / (dt || 1);
@@ -1865,34 +2423,32 @@ function updateCamera(dt) {
         return;
     }
 
-    // How far the player is from the hole centre
+    // Hard snap mode: if player is outside the TomeBoy hole, snap camera immediately.
+    // This removes the rubber-band bounce during recentering.
     const dxView = playerVpX - hole.cx;
     const dyView = playerVpY - hole.cy;
+    const overflowX = Math.abs(dxView) - hole.halfW;
+    const overflowY = Math.abs(dyView) - hole.halfH;
+    const needsSnap = overflowX > 0 || overflowY > 0;
 
-    const softHalfW = hole.halfW - CAMERA_TRIGGER_MARGIN;
-    const softHalfH = hole.halfH - CAMERA_TRIGGER_MARGIN;
+    if (needsSnap) {
+        cameraSnapActive = true;
+        if (overflowX > 0) cameraTargetX = window.scrollX + overflowX * Math.sign(dxView);
+        else cameraTargetX = window.scrollX;
+        if (overflowY > 0) cameraTargetY = window.scrollY + overflowY * Math.sign(dyView);
+        else cameraTargetY = window.scrollY;
 
-    const outsideX = Math.abs(dxView) > softHalfW;
-    const outsideY = Math.abs(dyView) > softHalfH;
+        const doc = document.documentElement;
+        cameraTargetX = Math.min(Math.max(0, cameraTargetX), Math.max(0, doc.scrollWidth  - window.innerWidth));
+        cameraTargetY = Math.min(Math.max(0, cameraTargetY), Math.max(0, doc.scrollHeight - window.innerHeight));
 
-    if (outsideX || outsideY) {
-        if (outsideX) cameraTargetX += (Math.abs(dxView) - softHalfW) * Math.sign(dxView)
-                                     + playerVelX * dt * CAMERA_LOOKAHEAD * 0.016;
-        if (outsideY) cameraTargetY += (Math.abs(dyView) - softHalfH) * Math.sign(dyView)
-                                     + playerVelY * dt * CAMERA_LOOKAHEAD * 0.016;
+        window.scrollTo({ left: cameraTargetX, top: cameraTargetY, behavior: 'auto' });
+        return;
     }
 
-    // Clamp to valid scroll range
-    const doc = document.documentElement;
-    cameraTargetX = Math.min(Math.max(0, cameraTargetX), Math.max(0, doc.scrollWidth  - window.innerWidth));
-    cameraTargetY = Math.min(Math.max(0, cameraTargetY), Math.max(0, doc.scrollHeight - window.innerHeight));
-
-    // Lerp scroll toward target each frame
-    const lerpFactor = Math.min(1, CAMERA_LERP * dt);
-    const newScrollX = window.scrollX + (cameraTargetX - window.scrollX) * lerpFactor;
-    const newScrollY = window.scrollY + (cameraTargetY - window.scrollY) * lerpFactor;
-
-    window.scrollTo({ left: newScrollX, top: newScrollY, behavior: 'auto' });
+    cameraSnapActive = false;
+    cameraTargetX = window.scrollX;
+    cameraTargetY = window.scrollY;
 }
 
 function centerCameraOnPlayer() {
@@ -2045,7 +2601,10 @@ window.addEventListener('load', () => {
     syncResponsiveOffsets();
     syncArenaSizeForViewport();
     positionTomeboy();
+    positionMapArea();
+    positionGuideArea();
     positionButtonControls();
+    startTomeboyAnimation();
     centerCameraOnPlayer();
 });
 requestAnimationFrame(loop);
