@@ -782,6 +782,7 @@ function applyNightStateToChickens() {
 }
 
 function applyMovementReductionVisualState() {
+    root.style.setProperty('--seaTileScale', movementReduction ? String(MOVEMENT_REDUCTION_SCALE) : '1');
     if (!arena) return;
     if (movementReduction) {
         arena.style.transformOrigin = 'top left';

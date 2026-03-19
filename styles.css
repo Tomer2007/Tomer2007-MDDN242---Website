@@ -44,6 +44,13 @@
 
   --worldWidth:  4480px;
   --worldHeight: 4480px;
+
+  /* ── BACKGROUND TILE ──────────────────────────────────────────────────────
+     Change --seaTileSize to scale each repeated tile.
+  */
+  --seaTileImage: url("Assets/Tomer'sWebsiteSeaTile.png");
+  --seaTileSize: 64px;
+  --seaTileScale: 1;
 }
 
 /* =============================================================================
@@ -54,7 +61,13 @@ body {
   margin: 0;
   padding: 0px;
   font-family: Arial, sans-serif;
-  background: #154da1;
+  background-color: #154da1;
+  background-image: var(--seaTileImage);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background-repeat: repeat;
+  background-size: calc(var(--seaTileSize) * var(--seaTileScale)) calc(var(--seaTileSize) * var(--seaTileScale));
+  background-position: 0 0;
   /* Zoom is applied here by script.js at runtime.
      A default of 1 ensures nothing breaks if JS hasn't run yet. */
   zoom: 1;
