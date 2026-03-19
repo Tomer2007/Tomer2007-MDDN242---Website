@@ -35,7 +35,7 @@
   --playerScale: 1;
   
   --buttonX:     2840px; /* not buttons location but player */
-  --buttonY:     1800px;
+  --buttonY:     2000px;
   /* if isMobile {
      --control-size: clamp(60px, 7.5vw, 80px);
   }
@@ -51,6 +51,13 @@
   --seaTileImage: url("Assets/Tomer'sWebsiteSeaTile.png");
   --seaTileSize: 64px;
   --seaTileScale: 1;
+  /* Responsive world/arena positioning and border sizing (read by script.js) */
+  --worldOffsetX: 590px;
+  --worldOffsetY: 90px;
+  --arenaOffsetX: 0px;
+  --arenaOffsetY: 0px;
+  --viewportBorderRatioX: 0.85;
+  --viewportBorderRatioY: 0.65;
 }
 
 /* =============================================================================
@@ -96,8 +103,10 @@ body {
 
 .arena {
   position: relative;
-  width: 5705px;
-  height: 4700px;
+  left: var(--arenaOffsetX);
+  top: var(--arenaOffsetY);
+  width: 4005px;
+  height: 3000px;
   background: linear-gradient(180deg, rgba(32, 21, 59, 0.03), rgba(0,0,0,0.02));
   border: 1px dashed rgba(0,0,0,0.06);
   margin: 0px 0;
@@ -109,8 +118,8 @@ body {
 
 .world-map {
   position: absolute;
-  top: -30px;
-  left: 590px;
+  top: var(--worldOffsetY);
+  left: var(--worldOffsetX);
 
   width:  var(--worldWidth);
   height: var(--worldHeight);
