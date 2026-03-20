@@ -4,16 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guide Book</title>
+  <link id="dialogue-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap">
   <style>
     :root {
       color-scheme: light;
+      --guideBookCtrlScale: 1.3;
+      --tomeboyFrameSpriteSize: calc(480px * var(--guideBookCtrlScale));
+      --guideBookTileScale: 6;
+      --guideBookTileSize: calc(var(--tomeboyFrameSpriteSize) * var(--guideBookTileScale));
+      --guideBookSpriteScaleX: 1.1;
+      --guideBookSpriteScaleY: 1.1;
+      --guideBookPageSpacingY: 164px;
+      --guideBookTextBoxScaleX: 0.88;
+      --guideBookTextBoxScaleY: 3.1;
+      --guideBookTextBoxOffsetX: 0px;
+      --guideBookTextBoxOffsetY: 0px;
+      --guideBookTextBoxLeftOffsetX: 0px;
+      --guideBookTextBoxLeftOffsetY: -45px;
+      --guideBookTextBoxRightOffsetX: 0px;
+      --guideBookTextBoxRightOffsetY: -45px;
+      --guideBookTextBoxBackgroundAlpha: 0.0;
+      --guideBookInlineImageSize: 180px;
+      --guideBookInlineImageScale: 1;
     }
 
     body {
       margin: 0;
-      font-family: "Trebuchet MS", "Verdana", sans-serif;
-      background: linear-gradient(180deg, #f6f7fb 0%, #e8edf8 100%);
+      font-family: "Micro 5", sans-serif;
+      background-image: url('Assets/GuideBook/GuideBookBackground.png');
+      background-repeat: repeat;
+      background-position: 0 0;
+      background-size: var(--guideBookTileSize) var(--guideBookTileSize);
       color: #0f042c;
+    }
+
+    img,
+    .book-page {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
     .page {
@@ -43,46 +71,110 @@
     }
 
     .book-page {
-      background-image: url('Assets/Mobile/Tomer\'sWebsiteMobileMap.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      border-radius: 14px;
-      padding: 60px 40px;
-      margin: 24px 0;
-      min-height: 300px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 90px 70px;
+        margin: var(--guideBookPageSpacingY) 0;
+      min-height: 420px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: stretch;
       position: relative;
+      isolation: isolate;
+      overflow: visible;
     }
 
     .book-page::before {
-      content: '';
+      content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 14px;
+      left: calc((1 - var(--guideBookSpriteScaleX)) * 50%);
+      top: calc((1 - var(--guideBookSpriteScaleY)) * 50%);
+      width: calc(100% * var(--guideBookSpriteScaleX));
+      height: calc(100% * var(--guideBookSpriteScaleY));
+      background-image: url('Assets/GuideBook/GuideBookOpen.png');
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
       pointer-events: none;
+      z-index: 0;
     }
 
-    .book-page p {
-      position: relative;
-      z-index: 1;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 28px;
+    .page-text-box {
+      --textBoxSideOffsetX: 0px;
+      --textBoxSideOffsetY: 0px;
+      background: rgba(255, 255, 255, var(--guideBookTextBoxBackgroundAlpha));
+      padding: 20px;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      max-width: 500px;
       margin: 0;
+      width: calc(100% * var(--guideBookTextBoxScaleX));
+      min-height: calc(140px * var(--guideBookTextBoxScaleY));
+      font-size: 20px;
+      line-height: 1.4;
+      font-family: "Micro 5", sans-serif;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      align-self: center;
+      justify-self: center;
+      transform: translate(
+        calc(var(--guideBookTextBoxOffsetX) + var(--textBoxSideOffsetX)),
+        calc(var(--guideBookTextBoxOffsetY) + var(--textBoxSideOffsetY))
+      );
+      position: relative;
+      z-index: 1;
+    }
+
+    .page-text-box-left {
+      --textBoxSideOffsetX: var(--guideBookTextBoxLeftOffsetX);
+      --textBoxSideOffsetY: var(--guideBookTextBoxLeftOffsetY);
+    }
+
+    .page-text-box-right {
+      --textBoxSideOffsetX: var(--guideBookTextBoxRightOffsetX);
+      --textBoxSideOffsetY: var(--guideBookTextBoxRightOffsetY);
+    }
+
+    .book-inline-image {
+      width: calc(var(--guideBookInlineImageSize) * var(--guideBookInlineImageScale));
+      height: auto;
+      border-radius: 8px;
+      margin: 0 0 8px 12px;
+      float: right;
+      clear: none;
+      display: block;
+    }
+
+    .book-inline-image.place-above,
+    .book-inline-image.place-below {
+      float: none;
+      clear: both;
+      margin: 8px auto;
+    }
+
+    .book-inline-link {
+      color: #173c85;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .book-inline-link:hover {
+      color: #0f2d66;
+    }
+
+    @media (max-width: 760px) {
+      .book-page {
+        grid-template-columns: 1fr;
+        padding: 60px 30px;
+        min-height: 480px;
+      }
     }
 
     .back-link {
       display: inline-block;
-      margin-top: 20px;
+      margin-top: 0;
       text-decoration: none;
       font-weight: 700;
       color: #214f9d;
@@ -95,27 +187,228 @@
 </head>
 <body>
   <main class="page">
-    <section class="card" aria-labelledby="guide-book-title">
-      <h1 id="guide-book-title">Guide Book</h1>
-    </section>
-
-    <div class="book-page">
-      <p>
-        Welcome to the guide book page. You can put instructions, gameplay hints,
-        controls, and navigation tips here.
-      </p>
-    </div>
-
-    <div class="book-page">
-      <p>
-        This is a basic layout page that you can expand with sections,
-        screenshots, links, or a full table of contents later.
-      </p>
-    </div>
-
     <section class="card">
       <a class="back-link" href="index.html">Back to Main Website</a>
     </section>
+
+    <div class="book-page"
+      data-left-text="{font-size:45} {-=- Guide Book -=-} {font-size:31} {\n A guide book and walkthrough guide to help navigate Tomer's Website. /n - Written by Tomer}"
+      data-right-text="{font-size:39} {CONTENTS:} {font-size:33} {\n - Keyboard Controls \n - Alternative Controls \n - Mechanics \n - Walkthrough (To see the content and information of the website in a more standard website format.)}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+    <div class="book-page"
+      data-left-text="{font-size:39} {Keyboard Controls:} {font-size:31} {\n - WASD to Move \n - Spacebar to Interact and talk to NPCs \n - Shift to Sprint}"
+      data-right-text="{font-size:39} {Alternative Controls:} {font-size:25} {\n You can also use the onscreen buttons to move, talk and sprint.{img:Assets/WebsiteGameBoyButton.png|wrap|size:260} \n \n \n \n \n \n Or you can scroll around the website with the mouse to move the camera and click NPCs to interact.}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+    <div class="book-page"
+      data-left-text="{font-size:39} {Mechanics:} {font-size:31} {\n Other than just moving and interacting you can also pick up and move NPCs with the mouse, and tweak settings and music in the two side rooms of the starting house.}"
+      data-right-text="{font-size:31} {You can also use the Map outside of the TomeBoy to quickly get around the map. {img:Assets/WebsiteMap.png|wrap|size:330}}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+    <div class="book-page"
+      data-left-text="{font-size:37} {Walkthrough Chapter 1:} {font-size:41} {About Me quest} {font-size:25} {\n To start this quest, you must first talk with the About Me NPC in the starting house. From this he will tell you some important information about Tomer: {img:Assets/WebsiteAboutButton.png|wrap|size:250}}"
+      data-right-text="{font-size:22} ''I am a second year game design student at VUW. Having spent many years doing game design and learning a variety of engines and coding languages. \n As for professional experience I'm yet to get any, other than my experience in my degree. However, I am eagerly seeking an internship job at one of the Game Development studios in Wellington. \n You can check out past design projects in the HALL OF PROJECTS PAST to the east of this house. \n Also I think you should really help with those chickens.''">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+    <div class="book-page"
+      data-left-text="{font-size:37} {Walkthrough Chapter 2:} {font-size:41} {Contact quest} {font-size:25} {\n In the same room you can find the Contact NPC, a secretive figure who will give you information on how to contact Tomer: {img:Assets/WebsiteContactButton.png|wrap|size:250}}"
+      data-right-text="{font-size:31} {''Email: thirschauge@gmail.com \n Phone: [Redacted] \n Address: [Redacted] \n IP: 20 \n Itch.io Account: Tomer2007 \n Tomer: Tomer''}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+     <div class="book-page"
+      data-left-text="{font-size:37} {Walkthrough Chapter 3:} {font-size:41} {Newsletter quest} {font-size:25} {\n And finally, in the starting room you can find the Newsletter NPC, a poweful being who is extremely up to date on the current events, of Tomer: {img:Assets/WebsiteAboutButton.png|wrap|size:250}}"
+      data-right-text="{font-size:25} {''March 2026: I made a website to show what I'm working on.'' \n [There isn't really much news yet, but when their is I'll probably make this either a different Newspaper page so I don't have to fit all every event into the guide book.]}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+    <div class="book-page"
+      data-left-text="{font-size:37} {Walkthrough Chapter 4:} {font-size:41} {Hall of Past Projects side-quests} {font-size:25} {\n This section is for those who want to 100% the website, which can be done by venturing to the Hall of Past Projects, which is east of the starting house.{img:Assets/NPC/HorseEmpire/WebsiteNPCHorseIdle1.png|wrap|size:150}}"
+      data-right-text="{font-size:28} {Past Project 1: Horse Empire {img:Assets/NPC/HorseEmpire/HorseEmpirePreview.png|wrap|size:230}} {font-size:17} {\n A game created by a group of VUW students in Game203. Was submitted to Mini 205 : Horse, where it placed 77th overall. \n Tomer's contribution to the game was limited to the programming which was rather difficult due to being made within the first week of using Godot. \n The Game was made in just three days. \n You can skip to the project {link:Here|https://groganisntreal.itch.io/horse-empire}}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
+
+
+    <div class="book-page"
+      data-left-text="{font-size:35} {Past Project 2: Automatic Burger Wallpaper} {font-size:20}{\n A wallpaper made in 2025 for a University Course.\n It uses randomly generated variables to make a pattern of unique burgers. \n In the code it even has different burger modes and settings. \n Unfortunately, there isn't any buttons on the site to change the burger generator. So all you can do is refresh the page for a new burger pattern. \n Click {link:Here|https://25-dsdn142.github.io/parametric-patterns-Tomer2007/} to view the wallpaper.}"
+      data-right-text="{font-size:30} {Past Project 3: Puppet Fighterz} {font-size:15} {\n Is a browser based fighting game which uses the webcam to make a fighting game. \n By holding your hand infront of the camera it will create a Puppet for each hand. \n Originally they were just meant to be little controlable puppets, but they got mad at each other and now fight endlessly. \n The game includes features like blocking (Punching the opponents hand, or lowering arms for a block) Punching (Punching opponents in the head to deal damage) and launching Spirit Balls \n (By tapping you pinky and thumb together you can start charging a spirit ball, releasing it shoots the ball directly at the opponents face, where it can be blocked by punching). \n The game was made for a uni assignment, so is no longer being supported, despite being in a quite buggy state. \n Test it out {link:Here |https://25-dsdn142.github.io/react-Tomer2007/}. [Link currently not working :[ ]}">
+      <div class="page-text-box page-text-box-left"></div>
+      <div class="page-text-box page-text-box-right"></div>
+    </div>
   </main>
+
+  <script>
+    function parseBookTokens(rawText) {
+      const input = String(rawText || '');
+      const tokenRegex = /\{([^{}]*)\}|([^{}]+)/g;
+      const tokens = [];
+      let match;
+
+      while ((match = tokenRegex.exec(input)) !== null) {
+        const inBraces = match[1];
+        const outside = match[2];
+
+        if (typeof inBraces === 'string') {
+          const value = inBraces;
+          const fontMatch = value.match(/^\s*font-size\s*:\s*(\d+)\s*$/i);
+          if (fontMatch) {
+            tokens.push({ type: 'font-size', value: Number(fontMatch[1]) });
+            continue;
+          }
+
+          const imgMatch = value.match(/^\s*img\s*:\s*(.+)$/i);
+          if (imgMatch) {
+            const parts = imgMatch[1].split('|').map((part) => part.trim()).filter(Boolean);
+            const optionParts = parts.slice(1);
+            let placement = 'wrap';
+            let inlineSize = '';
+            let inlineScale = '';
+
+            optionParts.forEach((optionRaw) => {
+              const option = optionRaw.toLowerCase();
+              if (['wrap', 'left', 'above', 'below', 'right'].includes(option)) {
+                placement = option;
+                return;
+              }
+
+              const sizeMatch = optionRaw.match(/^\s*size\s*:\s*(\d+(?:\.\d+)?)\s*(px)?\s*$/i);
+              if (sizeMatch) {
+                inlineSize = `${sizeMatch[1]}px`;
+                return;
+              }
+
+              const scaleMatch = optionRaw.match(/^\s*scale\s*:\s*(\d+(?:\.\d+)?)\s*$/i);
+              if (scaleMatch) {
+                inlineScale = scaleMatch[1];
+                return;
+              }
+
+              const numericOnlyMatch = optionRaw.match(/^\s*(\d+(?:\.\d+)?)\s*$/);
+              if (numericOnlyMatch) {
+                inlineSize = `${numericOnlyMatch[1]}px`;
+              }
+            });
+
+            tokens.push({
+              type: 'image',
+              src: parts[0] || '',
+              placement,
+              inlineSize,
+              inlineScale,
+            });
+            continue;
+          }
+
+          const linkMatch = value.match(/^\s*link\s*:\s*([^|]+)\|(.+)$/i);
+          if (linkMatch) {
+            tokens.push({
+              type: 'link',
+              label: linkMatch[1].trim(),
+              href: linkMatch[2].trim(),
+            });
+            continue;
+          }
+
+          tokens.push({ type: 'text', value });
+          continue;
+        }
+
+        if (outside) tokens.push({ type: 'text', value: outside });
+      }
+
+      return tokens;
+    }
+
+    function normalizeBookText(text) {
+      return String(text || '')
+        .replace(/\\n/g, '\n')
+        .replace(/\s*\/n\s*/g, '\n');
+    }
+
+    function createBookImage(token) {
+      const image = document.createElement('img');
+      image.className = 'book-inline-image';
+      image.src = token.src;
+      image.alt = '';
+
+      if (token.inlineSize) {
+        image.style.width = token.inlineSize;
+      } else if (token.inlineScale) {
+        image.style.width = `calc(var(--guideBookInlineImageSize) * ${token.inlineScale})`;
+      }
+
+      if (token.placement === 'above') image.classList.add('place-above');
+      if (token.placement === 'below') image.classList.add('place-below');
+      if (token.placement === 'left') {
+        image.style.float = 'left';
+        image.style.margin = '0 12px 8px 0';
+      }
+      if (token.placement === 'right' || token.placement === 'wrap') {
+        image.style.float = 'right';
+        image.style.margin = '0 0 8px 12px';
+      }
+
+      return image;
+    }
+
+    function applyBookText(pageElement, attributeName, boxSelector) {
+      const box = pageElement.querySelector(boxSelector);
+      if (!box) return;
+
+      box.innerHTML = '';
+      const baseFontSize = parseFloat(getComputedStyle(box).fontSize) || 20;
+      let currentFontSize = baseFontSize;
+
+      const tokens = parseBookTokens(pageElement.getAttribute(attributeName));
+
+      tokens.forEach((token) => {
+        if (token.type === 'font-size') {
+          currentFontSize = token.value;
+          return;
+        }
+
+        if (token.type === 'image' && token.src) {
+          box.appendChild(createBookImage(token));
+          return;
+        }
+
+        if (token.type === 'link' && token.href) {
+          const link = document.createElement('a');
+          link.className = 'book-inline-link';
+          link.href = token.href;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.style.fontSize = `${currentFontSize}px`;
+          link.textContent = normalizeBookText(token.label || token.href);
+          box.appendChild(link);
+          return;
+        }
+
+        if (token.type === 'text') {
+          const span = document.createElement('span');
+          span.style.fontSize = `${currentFontSize}px`;
+          span.textContent = normalizeBookText(token.value);
+          box.appendChild(span);
+        }
+      });
+    }
+
+    document.querySelectorAll('.book-page').forEach((pageElement) => {
+      applyBookText(pageElement, 'data-left-text', '.page-text-box-left');
+      applyBookText(pageElement, 'data-right-text', '.page-text-box-right');
+    });
+  </script>
 </body>
 </html>

@@ -90,26 +90,31 @@ Going back to the underground Room the player can push a restart buttons to brin
 
  - LIST OF REQUIREMENTS FOR SUBMISSION
 
- - Home Button
  - No noticeable bugs or errors
- - Night mode which makes things darker
  - More NPCs (BurgerMan, Puppet, more NPCs)
  - About, Contact, Newsletter and Projects NPCs in mobile
- - Clearer instructions on how to navigate the website
- - A basic website version with images and links.
- - Clear instructions on how and what the basic website version does.
  - Fully written Read Me
  - Fix the goddamn 2000 lines of spaghetti code to remove pointless variables and compress everything as much as possible without losing features.
 
- - Click to interact with NPCs (while stilling being able to drag)
- - A guide NPC to help you navigate to places or something like a map outside the game which lets you press an option of where to go and get teleported there (can replace home button)
+
+ 
 
 
 
  - CURRENT BUGS
 
  - Dialouge Text and images scale to device size
-- Coop area positioning
+
 
 - WORKING ON
+
+
+- DONE
 - Home Button + Clearer instructions
+- Night mode which makes things darker
+- Clearer instructions on how to navigate the website
+- A basic website version with images and links.
+- Clear instructions on how and what the basic website version does.
+- Click to interact with NPCs (while stilling being able to drag)
+- A guide NPC to help you navigate to places or something like a map outside the game which lets you press an option of where to go and get teleported there (can replace home button)
+- Home Button
