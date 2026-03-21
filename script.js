@@ -328,9 +328,9 @@ const sprintSpeedMultiplier = 1.8;
 
 const TB_NATIVE      = 480;
 const TB_HOLE_CX     = 239.5;
-const TB_HOLE_CY     = 235.0;
+const TB_HOLE_CY     = 240.0;
 const TB_HOLE_HALF_W = 18.75;
-const TB_HOLE_HALF_H = 16.00;
+const TB_HOLE_HALF_H = 15.00;
 const MOVEMENT_REDUCTION_FOLLOW_BOUNDARY_SCALE = 1.2;
 const MOVEMENT_REDUCTION_DRAG_BOUNDARY_SCALE = 0.55; // Smaller value = camera scrolls sooner when dragging
 const MOVEMENT_REDUCTION_BOUNDARY_MAX_VIEWPORT_RATIO = 0.28;
@@ -406,6 +406,289 @@ const actionBtn = document.getElementById('actionBtn');
 const sprintBtn = document.getElementById('sprintBtn');
 const DAY_WORLD_MAP_SRC = worldMapEl?.getAttribute('src') || "Assets/Maps/Tomer'sWebsiteFinalWorld2.png";
 const NIGHT_WORLD_MAP_SRC = "Assets/Nighttime/Tomer'sWebsiteFinalWorld2Night.png";
+const DAY_SEA_TILE_IMAGE = getComputedStyle(root).getPropertyValue('--seaTileImage').trim()
+    || 'url("Assets/Tomer\'sWebsiteSeaTile.png")';
+const NIGHT_SEA_TILE_IMAGE = 'url("Assets/Nighttime/Tomer\'sWebsiteSeaTileNight.png")';
+
+const MUSIC_TRACKS = [
+    "Assets/Music/AvapXia - Cliff Jumper.mp3",
+    "Assets/Music/AvapXia - Skybound.mp3",
+    "Assets/Music/AvapXia - la cuna.mp3",
+    "Assets/Music/RoccoW - New Game Minus.mp3",
+    "Assets/Music/RoccoW - When the Leaves Leaf.mp3",
+];
+const MUSIC_DEFAULT_VOLUME = 0.65;
+const MUSIC_SLIDER_WORLD_X = 2230;
+const MUSIC_SLIDER_WORLD_Y = 2220;
+const MUSIC_SLIDER_LENGTH_PX = 260;
+const MUSIC_SLIDER_THUMB_SIZE_PX = 50;
+const MUSIC_SLIDER_THUMB_IMAGE = "Assets/Music/WebsiteMusicSlider.png"; // Example: "Assets/WebsiteVolumeKnob.png"
+
+let musicAudio = null;
+let musicQueue = [];
+let currentMusicTrack = '';
+let musicStarted = false;
+let musicPaused = false;
+let musicSkipRequested = false;
+let musicVolume = MUSIC_DEFAULT_VOLUME;
+let nowPlayingNode = null;
+let nowPlayingFadeInTimer = null;
+let nowPlayingFadeOutTimer = null;
+let musicVolumeUiNode = null;
+let musicVolumeLabelNode = null;
+let musicVolumeSliderNode = null;
+const NOW_PLAYING_FONT_SIZE_PX = 32;
+const NOW_PLAYING_OFFSET_X = -60;
+const NOW_PLAYING_OFFSET_Y = -70;
+
+function clamp01(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+}
+
+function setMusicVolume(value) {
+    musicVolume = clamp01(value);
+    if (musicAudio) musicAudio.volume = musicVolume;
+
+    const pct = Math.round(musicVolume * 100);
+    if (musicVolumeLabelNode) musicVolumeLabelNode.textContent = `Volume: ${pct}%`;
+    if (musicVolumeSliderNode) {
+        const sliderValue = String(pct);
+        if (musicVolumeSliderNode.value !== sliderValue) musicVolumeSliderNode.value = sliderValue;
+    }
+}
+
+function updateMusicVolumeUiPosition() {
+    if (!musicVolumeUiNode) return;
+    musicVolumeUiNode.style.left = `${Math.round(MUSIC_SLIDER_WORLD_X)}px`;
+    musicVolumeUiNode.style.top = `${Math.round(MUSIC_SLIDER_WORLD_Y)}px`;
+    if (musicVolumeSliderNode) {
+        musicVolumeSliderNode.style.width = `${Math.max(60, Math.round(MUSIC_SLIDER_LENGTH_PX))}px`;
+    }
+}
+
+function ensureMusicVolumeUi() {
+    if (musicVolumeUiNode) return musicVolumeUiNode;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'music-volume-ui';
+
+    const label = document.createElement('div');
+    label.className = 'music-volume-value';
+    label.textContent = 'Volume: 0%';
+
+    const slider = document.createElement('input');
+    slider.className = 'music-volume-slider';
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = '1';
+    slider.value = String(Math.round(musicVolume * 100));
+    slider.setAttribute('aria-label', 'Music volume');
+    slider.style.setProperty('--musicSliderThumbSize', `${Math.max(8, Math.round(MUSIC_SLIDER_THUMB_SIZE_PX))}px`);
+    if (MUSIC_SLIDER_THUMB_IMAGE.trim()) {
+        const safeUrl = MUSIC_SLIDER_THUMB_IMAGE.replace(/"/g, '\\"');
+        slider.style.setProperty('--musicSliderThumbImage', `url("${safeUrl}")`);
+    } else {
+        slider.style.setProperty('--musicSliderThumbImage', 'none');
+    }
+
+    slider.addEventListener('input', () => {
+        setMusicVolume(Number(slider.value) / 100);
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(slider);
+    (arena || document.body).appendChild(wrap);
+
+    musicVolumeUiNode = wrap;
+    musicVolumeLabelNode = label;
+    musicVolumeSliderNode = slider;
+
+    updateMusicVolumeUiPosition();
+    setMusicVolume(musicVolume);
+    return wrap;
+}
+
+function getTrackDisplayName(trackPath) {
+    const fileName = String(trackPath || '').split('/').pop() || '';
+    return fileName.replace(/\.mp3$/i, '');
+}
+
+function updateNowPlayingPosition() {
+    if (!nowPlayingNode) return;
+    const hole = getScreenHoleRect();
+    const left = hole.cx - hole.halfW + NOW_PLAYING_OFFSET_X;
+    const top = hole.cy - hole.halfH + NOW_PLAYING_OFFSET_Y;
+    nowPlayingNode.style.left = `${Math.round(left)}px`;
+    nowPlayingNode.style.top = `${Math.round(top)}px`;
+}
+
+function ensureNowPlayingNode() {
+    if (nowPlayingNode) return nowPlayingNode;
+
+    const el = document.createElement('div');
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('aria-atomic', 'true');
+    el.style.position = 'fixed';
+    el.style.zIndex = '9300';
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0';
+    el.style.whiteSpace = 'nowrap';
+    el.style.color = '#f4f7ff';
+    el.style.textShadow = '0 1px 0 #112, 0 0 6px rgba(0, 0, 0, 0.55)';
+    el.style.fontFamily = '"Micro 5", sans-serif';
+    el.style.fontSize = `${NOW_PLAYING_FONT_SIZE_PX}px`;
+    el.style.lineHeight = '1';
+    el.style.transition = 'opacity 280ms ease-out';
+    document.body.appendChild(el);
+    nowPlayingNode = el;
+    updateNowPlayingPosition();
+    return el;
+}
+
+function showNowPlaying(trackPath) {
+    const el = ensureNowPlayingNode();
+    const displayName = getTrackDisplayName(trackPath);
+    el.textContent = `Currently Playing: ${displayName}`;
+    updateNowPlayingPosition();
+
+    if (nowPlayingFadeInTimer) {
+        clearTimeout(nowPlayingFadeInTimer);
+        nowPlayingFadeInTimer = null;
+    }
+    if (nowPlayingFadeOutTimer) {
+        clearTimeout(nowPlayingFadeOutTimer);
+        nowPlayingFadeOutTimer = null;
+    }
+
+    // Restart the fade animation on every new track.
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+    nowPlayingFadeInTimer = window.setTimeout(() => {
+        el.style.transition = 'opacity 260ms ease-out';
+        el.style.opacity = '1';
+        nowPlayingFadeOutTimer = window.setTimeout(() => {
+            el.style.transition = 'opacity 5200ms linear';
+            el.style.opacity = '0';
+        }, 1400);
+    }, 20);
+}
+
+function shuffleList(items) {
+    const out = [...items];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+function refillMusicQueue() {
+    musicQueue = shuffleList(MUSIC_TRACKS);
+    if (musicQueue.length > 1 && musicQueue[0] === currentMusicTrack) {
+        const first = musicQueue.shift();
+        musicQueue.push(first);
+    }
+}
+
+function ensureMusicAudio() {
+    if (musicAudio) return musicAudio;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = musicVolume;
+    audio.addEventListener('ended', () => {
+        playNextMusicTrack();
+    });
+    audio.addEventListener('error', () => {
+        console.warn('Music track failed to load, skipping:', currentMusicTrack);
+        playNextMusicTrack();
+    });
+    musicAudio = audio;
+    return audio;
+}
+
+function playNextMusicTrack() {
+    if (!MUSIC_TRACKS.length) return;
+    const audio = ensureMusicAudio();
+    if (!musicQueue.length) refillMusicQueue();
+    const nextTrack = musicQueue.shift();
+    if (!nextTrack) return;
+
+    currentMusicTrack = nextTrack;
+    audio.src = nextTrack;
+
+    if (musicPaused) {
+        showNowPlaying(nextTrack);
+        return;
+    }
+
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise
+            .then(() => {
+                musicStarted = true;
+                showNowPlaying(nextTrack);
+            })
+            .catch(() => {
+                // Browser blocked autoplay until explicit user gesture.
+                musicStarted = false;
+            });
+    } else {
+        musicStarted = true;
+        showNowPlaying(nextTrack);
+    }
+}
+
+function maybeStartMusicPlayback() {
+    if (musicPaused || musicStarted || !MUSIC_TRACKS.length) return;
+    playNextMusicTrack();
+}
+
+function setMusicPaused(value) {
+    const next = Boolean(value);
+    if (next === musicPaused) return;
+    musicPaused = next;
+
+    if (!musicAudio) return;
+
+    if (musicPaused) {
+        musicAudio.pause();
+        return;
+    }
+
+    if (!musicAudio.src) {
+        maybeStartMusicPlayback();
+        return;
+    }
+
+    const resumePromise = musicAudio.play();
+    if (resumePromise && typeof resumePromise.catch === 'function') {
+        resumePromise
+            .then(() => {
+                musicStarted = true;
+            })
+            .catch(() => {
+                musicStarted = false;
+            });
+    } else {
+        musicStarted = true;
+    }
+}
+
+function requestMusicSkip() {
+    if (!MUSIC_TRACKS.length) return;
+    playNextMusicTrack();
+}
+
+function setMusicSkipRequested(value) {
+    const next = Boolean(value);
+    musicSkipRequested = next;
+    if (!next) return;
+    requestMusicSkip();
+    musicSkipRequested = false;
+}
 
 const BASE_ARENA_WIDTH = 6705;
 const BASE_ARENA_HEIGHT = 5700;
@@ -1023,6 +1306,10 @@ function applyNightStateToWorldMap() {
     worldMapEl.setAttribute('src', nextSrc);
 }
 
+function applyNightStateToSeaTile() {
+    root.style.setProperty('--seaTileImage', isNight ? NIGHT_SEA_TILE_IMAGE : DAY_SEA_TILE_IMAGE);
+}
+
 function applyNightStateToTomeboy() {
     root.style.setProperty('--tomeboyNightDim', isNight ? '0.72' : '1');
     root.style.setProperty('--controllerNightDim', isNight ? '0.72' : '1');
@@ -1030,6 +1317,7 @@ function applyNightStateToTomeboy() {
 }
 
 applyNightStateToTomeboy();
+applyNightStateToSeaTile();
 
 function applyMovementReductionVisualState() {
     root.style.setProperty('--seaTileScale', movementReduction ? String(MOVEMENT_REDUCTION_SCALE) : '1');
@@ -1079,6 +1367,7 @@ function setIsNight(value) {
     if (next === isNight) return;
     isNight = next;
     applyNightStateToWorldMap();
+    applyNightStateToSeaTile();
     applyNightStateToTomeboy();
     applyNightStateToChickens();
     applyMovementReductionNpcState();
@@ -1108,6 +1397,7 @@ function refreshChickenCoopCounts(force = false) {
 
 window.setIsNight = setIsNight;
 window.setMovementReduction = setMovementReduction;
+window.skipMusicTrack = requestMusicSkip;
 
 try {
     Object.defineProperty(window, 'isNight', {
@@ -1127,6 +1417,36 @@ try {
     });
 } catch (_err) {
     window.MovementReduction = movementReduction;
+}
+
+try {
+    Object.defineProperty(window, 'musicPaused', {
+        configurable: true,
+        get() { return musicPaused; },
+        set(value) { setMusicPaused(value); }
+    });
+} catch (_err) {
+    window.musicPaused = musicPaused;
+}
+
+try {
+    Object.defineProperty(window, 'musicSkipRequested', {
+        configurable: true,
+        get() { return musicSkipRequested; },
+        set(value) { setMusicSkipRequested(value); }
+    });
+} catch (_err) {
+    window.musicSkipRequested = musicSkipRequested;
+}
+
+try {
+    Object.defineProperty(window, 'musicVolume', {
+        configurable: true,
+        get() { return musicVolume; },
+        set(value) { setMusicVolume(value); }
+    });
+} catch (_err) {
+    window.musicVolume = musicVolume;
 }
 
 function setDialogueFont(url, fontFamily) {
@@ -1618,8 +1938,14 @@ sprintBtn?.addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
     const a = document.activeElement;
     if (a?.tagName === 'INPUT' || a?.tagName === 'TEXTAREA' || a?.isContentEditable) return;
+    maybeStartMusicPlayback();
     if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); handleAction(); return; }
     switch (e.key) {
+        case 'n':
+        case 'N':
+            e.preventDefault();
+            requestMusicSkip();
+            break;
         case 'Shift':      sprintHeld = true;  break;
         case 'ArrowLeft':  pressed.left  = true; lastDirection = 'left';  e.preventDefault(); break;
         case 'ArrowRight': pressed.right = true; lastDirection = 'right'; e.preventDefault(); break;
@@ -2077,6 +2403,8 @@ window.addEventListener('resize', () => {
     positionMapArea();
     positionGuideArea();
     positionButtonControls();
+    updateNowPlayingPosition();
+    updateMusicVolumeUiPosition();
 });
 // ---------------------------------------------------------------------------
 //  Camera — only follows player while movement input is held.
@@ -2572,6 +2900,8 @@ function loop(timestamp) {
     updateDepthSorting();
     updateCamera(dt);
     updateOverlap();
+    updateNowPlayingPosition();
+    updateMusicVolumeUiPosition();
 
     // Track open dialogue and auto-close if the NPC wandered too far
     if (dialogueNode?.dataset.squareId) {
@@ -2597,6 +2927,8 @@ syncResponsiveOffsets();
 syncArenaSizeForViewport();
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
+document.addEventListener('pointerdown', maybeStartMusicPlayback, { once: true, capture: true });
+
 window.addEventListener('load', () => {
     syncResponsiveOffsets();
     syncArenaSizeForViewport();
@@ -2604,6 +2936,9 @@ window.addEventListener('load', () => {
     positionMapArea();
     positionGuideArea();
     positionButtonControls();
+    updateNowPlayingPosition();
+    ensureMusicVolumeUi();
+    updateMusicVolumeUiPosition();
     startTomeboyAnimation();
     centerCameraOnPlayer();
 });

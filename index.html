@@ -165,13 +165,13 @@
         <!-- NPC 1 — wandering, sequence dialogue -->
         <div class="game-square" id="square1"
           data-x="1463" data-y="1228"
-            data-idle-1="Assets/WebsiteNPC1Idle1.png"
-            data-idle-2="Assets/WebsiteNPC1Idle2.png"
-            data-walk-1="Assets/WebsiteNPC1Walk1.png"
-            data-walk-2="Assets/WebsiteNPC1Walk2.png"
+            data-idle-1="Assets/NPC/WebsiteNPC2Idle1.png"
+            data-idle-2="Assets/NPC/WebsiteNPC2Idle2.png"
+            data-walk-1="Assets/NPC/WebsiteNPC2Walk1.png"
+            data-walk-2="Assets/NPC/WebsiteNPC2Walk2.png"
             data-can-move="true"
             data-dialogue-mode="sequence"
-            data-dialogue="Hello — this is Square 1. || I mean this is NPC 1 || Or was it NPC 2 or 3? || We all look the same.)">
+            data-dialogue="Hello — this is Square 1. || I mean this is NPC 1 || Or was it NPC 2 or 3? || I wish I had a name like that /n Ghost guy. || Maybe I should just name myself. || You know what, my name's actually the Ghost of NPC Housing! || ... || No that doesn't sound right.">
         </div>
 
         <!-- NPC 2 — wandering, random dialogue -->
@@ -189,10 +189,10 @@
         <!-- NPC 3 — stationary, sequence dialogue with an image token -->
         <div class="game-square" id="square3"
           data-x="3970" data-y="2790"
-            data-idle-1="Assets/WebsiteNPC1Idle1.png"
-            data-idle-2="Assets/WebsiteNPC1Idle2.png"
-            data-walk-1="Assets/WebsiteNPC1Walk1.png"
-            data-walk-2="Assets/WebsiteNPC1Walk2.png"
+            data-idle-1="Assets/NPC/WebsiteNPC3Idle1.png"
+            data-idle-2="Assets/NPC/WebsiteNPC3Idle2.png"
+            data-walk-1="Assets/NPC/WebsiteNPC3Walk1.png"
+            data-walk-2="Assets/NPC/WebsiteNPC3Walk2.png"
             data-can-move="true"
             data-dialogue-mode="sequence"
             data-dialogue="Hey look at this weird image I found in the files. {img:Assets/ButtonLayout.png|120} || Weird, right? || Oh and I found another one... /n just let me grab it... || Look at that I wonder what it is. {img:Assets/Mobile/MobileNPCIdle1.png|120}|| Anyway that's all I got. /n Now scram.">
@@ -238,13 +238,13 @@
     
         <div class="game-square" id="square8"
           data-x="4529" data-y="1817"
-          data-idle-1="Assets/WebsiteNPC1Idle1.png"
-          data-idle-2="Assets/WebsiteNPC1Idle2.png"
-          data-walk-1="Assets/WebsiteNPC1Walk1.png"
-          data-walk-2="Assets/WebsiteNPC1Walk2.png"
+          data-idle-1="Assets/NPC/WebsiteGhostIdle1.png"
+          data-idle-2="Assets/NPC/WebsiteGhostIdle2.png"
+          data-walk-1="Assets/NPC/WebsiteGhostWalk1.png"
+          data-walk-2="Assets/NPC/WebsiteGhostWalk2.png"
           data-can-move="true"
           data-dialogue-mode="sequence"
-          data-dialogue="{size_change:40}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:40}Do you want to see some past projects? || {size_change:40}Well Here You Go! || {link:Horse Empire|https://groganisntreal.itch.io/horse-empire} is an immersive /n horse security simulator, /n based on games like Papers Please. /n It was made in 3 days for the Mini Game Jam 205, /n it placed 77th which is alright /n for being made with in 1 week of using Godot. || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
+          data-dialogue="{size_change:38}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:36}Do you want to see some past projects? || {size_change:40}Well Here You Go! || Look around my halls to find avatars and || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
       </div>
 
        <div class="game-square" id="square9"
@@ -333,12 +333,12 @@
         </div>
 
         <div class="game-square" id="square17"
-          data-x="2570" data-y="2190"
-            data-size="140, 80" 
-            data-idle-1="Assets/WebsiteContactButton.png"
-            data-idle-2="Assets/WebsiteContactButton.png"
-            data-walk-1="Assets/WebsiteContactButton.png"
-            data-walk-2="Assets/WebsiteContactButton.png"
+          data-x="2785" data-y="2140"
+            data-size="150, 80" 
+            data-idle-1="Assets/WebsiteNewsButton.png"
+            data-idle-2="Assets/WebsiteNewsButton.png"
+            data-walk-1="Assets/WebsiteNewsButton.png"
+            data-walk-2="Assets/WebsiteNewsButton.png"
             data-can-move="false"
             data-text-box-type="try"
             data-dialogue-mode="sequence"
@@ -361,7 +361,8 @@
           </div>
 
           <div class="game-square" id="square18"
-            data-x="3400" data-y="1950"
+            data-x="3400" data-y="1890"
+            data-size="152, 152" 
             data-idle-1="Assets/WebsiteLightModeSwitch.png"
             data-idle-2="Assets/WebsiteLightModeSwitch.png"
             data-walk-1="Assets/WebsiteLightModeSwitch.png"
@@ -370,9 +371,53 @@
             data-interaction-type="button"
             data-action-target="MovementReduction"
             data-action-mode="toggle"
-            data-button-off-idle1="Assets/Nighttime/WebsiteLightModeSwitch.png"
-            data-button-on-idle1="Assets/Nighttime/WebsiteDarkModeSwitch.png">
+            data-button-off-idle1="Assets/WebsiteMoveReducedFalse.png"
+            data-button-on-idle1="Assets/WebsiteMoveReducedTrue.png">
           </div>
+
+          <div class="game-square" id="square19"
+            data-x="2200" data-y="2070"
+            data-size="80, 80" 
+            data-idle-1="Assets/WebsiteLightModeSwitch.png"
+            data-idle-2="Assets/WebsiteLightModeSwitch.png"
+            data-walk-1="Assets/WebsiteLightModeSwitch.png"
+            data-walk-2="Assets/WebsiteLightModeSwitch.png"
+            data-can-move="false"
+            data-interaction-type="button"
+            data-action-target="musicPaused"
+            data-action-mode="toggle"
+            data-button-off-idle1="Assets/Music/WebsiteMusicPause.png"
+            data-button-on-idle1="Assets/Music/WebsiteMusicPlay.png">
+          </div>
+
+          <div class="game-square" id="square20"
+            data-x="2300" data-y="2070"
+            data-size="80, 80" 
+            data-idle-1="Assets/WebsiteLightModeSwitch.png"
+            data-idle-2="Assets/WebsiteLightModeSwitch.png"
+            data-walk-1="Assets/WebsiteLightModeSwitch.png"
+            data-walk-2="Assets/WebsiteLightModeSwitch.png"
+            data-can-move="false"
+            data-interaction-type="button"
+            data-action-target="musicSkipRequested"
+            data-action-mode="toggle"
+            data-button-off-idle1="Assets/Music/WebsiteMusicSkip.png"
+            data-button-on-idle1="Assets/Music/WebsiteMusicSkip.png">
+          </div>
+
+          <div class="game-square" id="square21"
+          data-size="100,100"
+          data-x="2250" data-y="1930"
+          data-idle-1="Assets/Music/WebsiteJukeboxOn1.png"
+          data-idle-2="Assets/Music/WebsiteJukeboxOn2.png"
+          data-can-move="false"
+          data-interaction-type="button"
+          data-action-target="musicPaused"
+          data-action-mode="toggle"
+          data-button-off-idle1="Assets/Music/WebsiteJukeboxOn1.png"
+          data-button-off-idle2="Assets/Music/WebsiteJukeboxOn2.png"
+          data-button-on-idle1="Assets/Music/WebsiteJukeboxOff.png">
+        </div>
 
         <!-- Player sprite — do not remove -->
         <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png" alt="Player sprite">

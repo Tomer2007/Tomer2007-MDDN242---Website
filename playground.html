@@ -25,15 +25,37 @@
       data-dialogue="Hey. || ... || ... ... || Hey. || If your looking for the /n Ghost of Projects Past, he's not in the demo. || At least not yet. || Give it a couple days he always manages to show up.">
     </div>
 
-    <div class="game-square" id="excited NPC"
+    <div class="game-square" id="Excited NPC"
       data-x="19" data-y="-203"
+      data-idle-1="Assets/Mobile/MobileNPCIdle1.png"
+      data-idle-2="Assets/Mobile/MobileNPCIdle2.png"
+      data-walk-1="Assets/Mobile/MobileNPCWalk1.png"
+      data-walk-2="Assets/Mobile/MobileNPCWalk2.png"
+      data-can-move="true"
+      data-dialogue-mode="sequence"
+      data-dialogue="Hello, welcome to the Tomer's Website Demo || Please use a Computer Device to play the full version! || We don't really have a lot to do here. || . . . || Wanna play Pac Man? || Well here ya go! /n {link:PACMANLINK.HTML.HTTPS.MOBILE|https://www.google.com/search?q=pacman} || Oh wait that doesn't work yet. || We really don't get a lot to do here.">
+    </div>
+
+    <div class="game-square" id="Guide / About / Contact / Newsletter Guy"
+      data-x="-65" data-y="-170"
       data-idle-1="Assets/Mobile/MobileNPCIdle1.png"
       data-idle-2="Assets/Mobile/MobileNPCIdle2.png"
       data-walk-1="Assets/Mobile/MobileNPCWalk1.png"
       data-walk-2="Assets/Mobile/MobileNPCWalk2.png"
       data-can-move="false"
       data-dialogue-mode="sequence"
-      data-dialogue="Hello, welcome to the Tomer's Website Demo || Please use a Computer Device to play the full version! || We don't really have a lot to do here. || . . . || Wanna play Pac Man? || Well here ya go! /n {link:PACMANLINK.HTML.HTTPS.MOBILE|https://www.google.com/search?q=pacman} || Oh wait that doesn't work yet. || We really don't get a lot to do here.">
+      data-dialogue="Hello, welcome to the Tomer's Website Demo || Please use a Computer Device to play the full version! || Since we don't have the processing power to render multiple NPCs I'll be filling the role of the Guide, About, Contact, and Newsletter NPCs. || So firstly I'll tell you about the fun oppurtunities in this demo! /n /n uh... /n /n Oh yeah! We still have the Hall of Past Projects to the south! And a way to Pause and Skip music in my houses two side rooms! || Okay, now on to the About NPC. /n uhm... /n ABOUT ME: /n ''I am a second year game design student at VUW. Having spent many years doing game design and learning a variety of engines and coding languages. /n As for professional experience I'm yet to get any, other than my experience in my degree. However, I am eagerly seeking an internship job at one of the Game Development studios in Wellington. /n You can check out past design projects in the HALL OF PROJECTS PAST to the east of this house.'' || And now the Contact NPC! /n CONTACTS: ''Email: thirschauge@gmail.com /n Phone: [Redacted] /n Address: [Redacted] /n IP: 20 /n Itch.io Account: Tomer2007 /n Tomer: Tomer'' || Finally, the Newsletter NPC! /n uh... /n ... /n There isn't much here, let me just... /n Aha! /n NEWS: ''March 2026: I made a website to show what I'm working on.'' /n Oh... /n That's it huh. /n Well, it makes my job easier I guess. || Anyway, have fun in the demo! And try out the full version by opening the website on a computer! || See ya around!">
+    </div>
+
+    <div class="game-square" id="The GHOST OF PROJECTS PAST"
+      data-x="85" data-y="-170"
+      data-idle-1="Assets/Mobile/MobileNPCIdle1.png"
+      data-idle-2="Assets/Mobile/MobileNPCIdle2.png"
+      data-walk-1="Assets/Mobile/MobileNPCWalk1.png"
+      data-walk-2="Assets/Mobile/MobileNPCWalk2.png"
+      data-can-move="false"
+      data-dialogue-mode="sequence"
+      data-dialogue="HELLO! /n IT IS I, THE GHOST OF PROJECTS PAST! DEMO EDITION! /n LET'S SEE SOME PAST PROJECTS! || Firstly, HORSE EMPIRE a Paper's Please inspired horse security game created by a group of VUW students in Game203. It was submitted to Mini 205 : Horse, where it placed 77th overall. /n Tomer's contribution to the game was limited to the programming which was rather difficult due to being made within the first week of using Godot. /n The Game was made in just three days. /n {link:Horse Empire, Available Now |https://groganisntreal.itch.io/horse-empire} || Next up, Randomise Burger Wallpapers, a randomly generated wallpaper made in 2025 for a University Course. It uses randomly generated variables to make a pattern of unique burgers. /n In the code it even has different burger modes and settings. /n Unfortunately, there isn't any buttons on / the site to change the burger generator. So all you can do is refresh the page for a new burger pattern. /n Click {link:Here |https://25-dsdn142.github.io/parametric-patterns-Tomer2007/} to view the wallpaper. || And that's all for now! See you in the Future!">
     </div>
 
     <div class="game-square" id="the legendary Mobile Chicken"
@@ -45,6 +67,42 @@
       data-can-move="true"
       data-dialogue-mode="random"
       data-dialogue="Bawk! || Chirp! || Bakaw! || Hello I Am Mobile Chicken || Have You Seen My Brother?">
+    </div>
+
+    <div class="game-square" id="mobile-music-pause"
+      data-x="-110" data-y="-160"
+      data-size="40, 40" 
+      data-idle-1="Assets/WebsiteLightModeSwitch.png"
+      data-idle-2="Assets/WebsiteLightModeSwitch.png"
+      data-walk-1="Assets/WebsiteLightModeSwitch.png"
+      data-walk-2="Assets/WebsiteLightModeSwitch.png"
+      data-can-move="false"
+      data-interaction-type="button"
+      data-action-target="playgroundMusicPaused"
+      data-action-mode="toggle"
+      data-button-off-idle1="Assets/Music/WebsiteMusicPause.png"
+      data-button-on-idle1="Assets/Music/WebsiteMusicPlay.png">
+    </div>
+
+    <div class="game-square" id="mobile-music-skip"
+      data-x="-10" data-y="-160"
+      data-size="40, 40" 
+      data-idle-1="Assets/WebsiteLightModeSwitch.png"
+      data-idle-2="Assets/WebsiteLightModeSwitch.png"
+      data-walk-1="Assets/WebsiteLightModeSwitch.png"
+      data-walk-2="Assets/WebsiteLightModeSwitch.png"
+      data-can-move="false"
+      data-interaction-type="button"
+      data-action-target="playgroundMusicSkipRequested"
+      data-action-mode="toggle"
+      data-button-off-idle1="Assets/Music/WebsiteMusicSkip.png"
+      data-button-on-idle1="Assets/Music/WebsiteMusicSkip.png">
+    </div>
+
+    <div id="mobile-redirect-area"
+      style="position:absolute; left:200px; top:65px; width:430px; height:60px; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); pointer-events:auto; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:26px; font-family:'Micro 5', Arial, sans-serif; z-index:5;"
+      title="Try the full version, if you have a computer!">
+      Try the full version, if you have a computer!
     </div>
 
     <img id="player" class="player-sprite" src="Assets/Mobile/MobilePlayerIdle1.png" alt="Player">

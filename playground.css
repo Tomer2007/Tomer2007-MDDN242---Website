@@ -1,5 +1,7 @@
 :root {
   --playerSize: 12px;
+  --playerStartX: -65px;
+  --playerStartY: -155px;
   --arenaWidth: 100vw;
   --arenaHeight: 90vh;
   --arena-offset-x: 0px;

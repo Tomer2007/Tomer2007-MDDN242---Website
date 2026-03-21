@@ -160,6 +160,229 @@ const baseSpeedPxPerSecond = 20;
 const sprintSpeedMultiplier = 2.4;
 const animationFps = 5;
 
+// Music system
+const MUSIC_TRACKS_PLAYGROUND = [
+    "Assets/Music/Mobile/Visager - Factory Time.mp3",
+    "Assets/Music/Mobile/Visager - Royal Entrance.mp3",
+    "Assets/Music/Mobile/Visager - The Plateau at Night.mp3",
+];
+const MUSIC_DEFAULT_VOLUME = 0.65;
+
+let playgroundMusicAudio = null;
+let playgroundMusicQueue = [];
+let playgroundCurrentMusicTrack = '';
+let playgroundMusicStarted = false;
+let playgroundMusicPaused = false;
+let playgroundMusicSkipRequested = false;
+let playgroundMusicVolume = MUSIC_DEFAULT_VOLUME;
+
+function playgroundClamp01(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+}
+
+function playgroundShuffleList(items) {
+    const out = [...items];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+function playgroundRefillMusicQueue() {
+    playgroundMusicQueue = playgroundShuffleList(MUSIC_TRACKS_PLAYGROUND);
+    if (playgroundMusicQueue.length > 1 && playgroundMusicQueue[0] === playgroundCurrentMusicTrack) {
+        const first = playgroundMusicQueue.shift();
+        playgroundMusicQueue.push(first);
+    }
+}
+
+function playgroundEnsureMusicAudio() {
+    if (playgroundMusicAudio) return playgroundMusicAudio;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = playgroundMusicVolume;
+    audio.addEventListener('ended', () => {
+        playgroundPlayNextMusicTrack();
+    });
+    audio.addEventListener('error', () => {
+        console.warn('Music track failed to load, skipping:', playgroundCurrentMusicTrack);
+        playgroundPlayNextMusicTrack();
+    });
+    playgroundMusicAudio = audio;
+    return audio;
+}
+
+function playgroundPlayNextMusicTrack() {
+    if (!MUSIC_TRACKS_PLAYGROUND.length) return;
+    const audio = playgroundEnsureMusicAudio();
+    if (!playgroundMusicQueue.length) playgroundRefillMusicQueue();
+    const nextTrack = playgroundMusicQueue.shift();
+    if (!nextTrack) return;
+
+    playgroundCurrentMusicTrack = nextTrack;
+    audio.src = nextTrack;
+
+    if (playgroundMusicPaused) {
+        return;
+    }
+
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise
+            .then(() => {
+                playgroundMusicStarted = true;
+            })
+            .catch(() => {
+                playgroundMusicStarted = false;
+            });
+    } else {
+        playgroundMusicStarted = true;
+    }
+}
+
+function playgroundMaybeStartMusicPlayback() {
+    if (playgroundMusicPaused || playgroundMusicStarted || !MUSIC_TRACKS_PLAYGROUND.length) return;
+    playgroundPlayNextMusicTrack();
+}
+
+function playgroundSetMusicPaused(value) {
+    const next = Boolean(value);
+    if (next === playgroundMusicPaused) return;
+    playgroundMusicPaused = next;
+
+    if (!playgroundMusicAudio) return;
+
+    if (playgroundMusicPaused) {
+        playgroundMusicAudio.pause();
+        return;
+    }
+
+    if (!playgroundMusicAudio.src) {
+        playgroundMaybeStartMusicPlayback();
+        return;
+    }
+
+    const resumePromise = playgroundMusicAudio.play();
+    if (resumePromise && typeof resumePromise.catch === 'function') {
+        resumePromise
+            .then(() => {
+                playgroundMusicStarted = true;
+            })
+            .catch(() => {
+                playgroundMusicStarted = false;
+            });
+    } else {
+        playgroundMusicStarted = true;
+    }
+}
+
+function playgroundSetMusicSkipRequested(value) {
+    const next = Boolean(value);
+    playgroundMusicSkipRequested = next;
+    if (!next) return;
+    playgroundPlayNextMusicTrack();
+    playgroundMusicSkipRequested = false;
+}
+
+// Expose as window properties
+Object.defineProperty(window, 'playgroundMusicPaused', {
+    get() { return playgroundMusicPaused; },
+    set(val) { playgroundSetMusicPaused(val); },
+    configurable: true
+});
+
+Object.defineProperty(window, 'playgroundMusicSkipRequested', {
+    get() { return playgroundMusicSkipRequested; },
+    set(val) { playgroundSetMusicSkipRequested(val); },
+    configurable: true
+});
+
+Object.defineProperty(window, 'playgroundMusicVolume', {
+    get() { return playgroundMusicVolume; },
+    set(val) { 
+        playgroundMusicVolume = playgroundClamp01(val);
+        if (playgroundMusicAudio) playgroundMusicAudio.volume = playgroundMusicVolume;
+    },
+    configurable: true
+});
+
+// Button action handling
+function getWindowPathValue(path) {
+    const parts = String(path || '').split('.').map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return undefined;
+
+    let ref = window;
+    for (const part of parts) {
+        if (ref == null || !(part in ref)) return undefined;
+        ref = ref[part];
+    }
+    return ref;
+}
+
+function setWindowPathValue(path, value) {
+    const parts = String(path || '').split('.').map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return false;
+
+    let ref = window;
+    for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (ref[part] == null || typeof ref[part] !== 'object') return false;
+        ref = ref[part];
+    }
+
+    const leaf = parts[parts.length - 1];
+    ref[leaf] = value;
+    return true;
+}
+
+function runButtonNpcAction(squareState) {
+    const cfg = squareState?.buttonConfig;
+    if (!cfg?.targetPath) return;
+
+    const current = getWindowPathValue(cfg.targetPath);
+    let next = current;
+
+    switch (cfg.actionMode) {
+        case 'set':
+            next = cfg.actionValue;
+            break;
+        case 'add': {
+            const base = Number(current);
+            const delta = Number(cfg.actionValue);
+            if (!Number.isFinite(base) || !Number.isFinite(delta)) return;
+            next = base + delta;
+            break;
+        }
+        case 'toggle':
+        default:
+            next = !Boolean(current);
+            break;
+    }
+
+    if (!setWindowPathValue(cfg.targetPath, next)) return;
+    
+    // Update visual state after action
+    updateButtonVisualState(squareState);
+}
+
+function updateButtonVisualState(squareState) {
+    if (!squareState?.buttonConfig) return;
+    const cfg = squareState.buttonConfig;
+    const currentValue = getWindowPathValue(cfg.targetPath);
+    const isOn = Boolean(currentValue);
+    const frames = isOn ? cfg.onFrames : cfg.offFrames;
+    
+    squareState.frames = frames;
+    squareState.frameIndex = 0;
+    squareState.frameElapsedMs = 0;
+    if (squareState.img && frames.length > 0) {
+        squareState.img.src = frames[0];
+    }
+}
+
 const squareEls = Array.from(document.querySelectorAll('.game-square'));
 const squareStates = {};
 const dialogueConfig = {};
@@ -173,6 +396,9 @@ for (const el of squareEls) {
   const spawnOffsetX = parseFloat(el.dataset.x) || 0;
   const spawnOffsetY = parseFloat(el.dataset.y) || 0;
   const canMove = (el.dataset.canMove ?? 'true') !== 'false';
+  const interactionTypeRaw = (el.dataset.interactionType || '').trim().toLowerCase();
+  const interactionType = interactionTypeRaw === 'button' ? 'button' : 'dialogue';
+  
   const mode = el.dataset.dialogueMode || 'sequence';
   const lines = (el.dataset.dialogue || '').split('||').map(s => s.trim()).filter(Boolean);
 
@@ -220,11 +446,33 @@ for (const el of squareEls) {
     frameElapsedMs: 0,
     img,
     lastDirection: 'right',
+    interactionType,
+    buttonConfig: interactionType === 'button' ? {
+      targetPath: String(el.dataset.actionTarget || '').trim(),
+      actionMode: (el.dataset.actionMode || 'toggle').toLowerCase(),
+      actionValue: el.dataset.actionValue || null,
+      offFrames: [
+        el.dataset['button-off-idle1'] || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
+        el.dataset['button-off-idle2'] || el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
+      ],
+      onFrames: [
+        el.dataset['button-on-idle1'] || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
+        el.dataset['button-on-idle2'] || el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
+      ]
+    } : null,
   };
 
   img.src = framesIdle[0];
   el.style.left = `0px`;
   el.style.top = `0px`;
+}
+
+// Initialize button visual states
+for (const id of Object.keys(squareStates)) {
+  const state = squareStates[id];
+  if (state.interactionType === 'button') {
+    updateButtonVisualState(state);
+  }
 }
 
 function setDialogueFont(url, fontFamily) {
@@ -272,6 +520,16 @@ function handleAction() {
     return;
   }
   const id = currentOverlapSquare.id;
+  const state = squareStates[id];
+  
+  // Handle button type NPCs
+  if (state?.interactionType === 'button') {
+    runButtonNpcAction(state);
+    dialogueBox.hidden = true;
+    return;
+  }
+  
+  // Handle dialogue type NPCs
   dialogueName.textContent = id;
   dialogueText.textContent = getNextDialogueText(id).replace(/\/n/g, '\n');
   dialogueBox.hidden = false;
@@ -294,9 +552,14 @@ function applyCenterRelativeSpawns() {
   const centerX = (arena?.clientWidth || 0) / 2;
   const centerY = (arena?.clientHeight || 0) / 2;
   const playerSize = getVar('--playerSize', 80);
+  
+  // Read player starting position from CSS variables (center-relative, like NPCs)
+  const playerStartX = getVar('--playerStartX', 0);
+  const playerStartY = getVar('--playerStartY', 0);
+  const hasCustomStart = playerStartX !== 0 || playerStartY !== 0;
 
-  currentX = centerX;
-  currentY = centerY;
+  currentX = centerX + (hasCustomStart ? playerStartX : 0);
+  currentY = centerY + (hasCustomStart ? playerStartY : 0);
   const playerSpawn = findNearestValidPosition(currentX, currentY, playerSize);
   currentX = playerSpawn.x;
   currentY = playerSpawn.y;
@@ -435,6 +698,15 @@ sprintBtn?.addEventListener('click', () => {
   sprintBtn.setAttribute('aria-pressed', String(sprintToggled));
 });
 
+const redirectArea = document.getElementById('mobile-redirect-area');
+if (redirectArea) {
+  redirectArea.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = 'index.html';
+  });
+}
+
 document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowLeft':
@@ -468,10 +740,16 @@ document.addEventListener('keydown', (e) => {
       handleAction();
       e.preventDefault();
       break;
+    case 'n':
+    case 'N':
+      playgroundPlayNextMusicTrack();
+      e.preventDefault();
+      break;
     case 'Shift':
       sprintHeld = true;
       break;
   }
+  playgroundMaybeStartMusicPlayback();
 });
 
 document.addEventListener('keyup', (e) => {

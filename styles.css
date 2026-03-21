@@ -40,7 +40,7 @@
   --dialogueImageSize: 120px;
   --tryDialogueWidth: 580px;
   --tryDialogueHeight: 480px;
-  --tryDialogueYOffset: 40px;
+  --tryDialogueYOffset: -20px;
 
   /* Internal — set by JS at runtime, not intended to be edited here */
   --playerFlip:  1;
@@ -74,7 +74,7 @@
 
   /* Temporary debug visibility for the TomeBoy MapArea hotspot.
      Set --mapAreaDebugVisible to 0 when alignment is finished. */
-  --mapAreaDebugVisible: 1;
+  --mapAreaDebugVisible: 0;
   --mapAreaDebugBorderColor: rgba(255, 245, 120, 0.95);
   --mapAreaDebugFillColor: rgba(255, 245, 120, 0.25);
   --tomeboyNightDim: 1;
@@ -423,6 +423,87 @@ body.custom-cursor-active * {
 
 /* Sprint active state (toggled) */
 #sprintBtn[aria-pressed="true"] { opacity: 0.6; }
+
+/* =============================================================================
+   MUSIC VOLUME UI
+   ============================================================================= */
+
+.music-volume-ui {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.music-volume-value {
+  font-family: "Micro 5", sans-serif;
+  font-size: 30px;
+  line-height: 1;
+  color: #f4f7ff;
+  text-shadow: 0 1px 0 #112, 0 0 6px rgba(0, 0, 0, 0.55);
+  user-select: none;
+}
+
+.music-volume-slider {
+  --musicSliderThumbImage: none;
+  --musicSliderThumbSize: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(163, 199, 255, 0.95), rgba(231, 241, 255, 0.95));
+  border: 1px solid rgba(12, 24, 44, 0.5);
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.music-volume-slider::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.music-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--musicSliderThumbSize);
+  height: var(--musicSliderThumbSize);
+  margin-top: calc((8px - var(--musicSliderThumbSize)) / 2);
+  border-radius: 0;
+  border: transparent;
+  background-color: transparent;
+  background-image: var(--musicSliderThumbImage);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  box-shadow: transparent;
+  cursor: pointer;
+}
+
+.music-volume-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.music-volume-slider::-moz-range-thumb {
+  width: var(--musicSliderThumbSize);
+  height: var(--musicSliderThumbSize);
+  border-radius: 0;
+  border: 1px solid rgba(10, 18, 35, 0.8);
+  background-color: #f8fbff;
+  background-image: var(--musicSliderThumbImage);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
 
 /* =============================================================================
    DIALOGUE BOX

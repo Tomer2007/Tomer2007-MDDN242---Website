@@ -95,7 +95,7 @@ Going back to the underground Room the player can push a restart buttons to brin
  - About, Contact, Newsletter and Projects NPCs in mobile
  - Fully written Read Me
  - Fix the goddamn 2000 lines of spaghetti code to remove pointless variables and compress everything as much as possible without losing features.
-
+- Music
 
  
 
