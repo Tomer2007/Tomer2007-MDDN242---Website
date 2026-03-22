@@ -35,6 +35,12 @@
   --dialogueFontFamily:     arial, sans-serif;
   --dialogueFontSize:       18px;
   --dialogueVerticalOffset: 14px;
+
+  --musicAnnounceOffsetX: 28px;
+  --musicAnnounceOffsetY: 24px;
+  --musicAnnounceFontSize: 14px;
+  --musicAnnounceVisibleMs: 2200;
+  --musicAnnounceFadeMs: 350;
 }
 
 * { box-sizing: border-box; }
@@ -69,17 +75,43 @@ body {
   z-index: 0;
 }
 
+.music-announcer {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  top: 0;
+  max-width: min(70vw, 280px);
+  border: none;
+  background: transparent;
+  color: #595939;
+  font-family: "Micro 5", var(--dialogueFontFamily);
+  font-size: var(--musicAnnounceFontSize);
+  line-height: 1.05;
+  letter-spacing: 0.4px;
+  padding: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity calc(var(--musicAnnounceFadeMs, 350) * 1ms) ease,
+              transform calc(var(--musicAnnounceFadeMs, 350) * 1ms) ease;
+}
+
+.music-announcer.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .game-square {
   position: absolute;
   width: var(--playerSize);
   height: var(--playerSize);
-  overflow: hidden;
+  overflow: visible;
   z-index: 10;
 }
 
 .game-square.highlight {
   outline: 4px solid #caca81;
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .npc-sprite {

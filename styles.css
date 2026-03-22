@@ -201,11 +201,12 @@ body.custom-cursor-active * {
   border: none;
   border-radius: 8px;
   transition: background 300ms ease, transform 200ms ease;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .game-square.highlight {
   box-shadow: 0 0 0 6px rgba(255, 212, 122, 0.9);
+  border-radius: 0;
   transform: scale(1.05);
 }
 

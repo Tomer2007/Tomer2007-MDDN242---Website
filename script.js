@@ -196,6 +196,11 @@ function applyWorldOffsetDelta(dx, dy) {
         DEFAULT_COOP_AREA.x += dx;
         DEFAULT_COOP_AREA.y += dy;
     }
+
+    // Keep music slider anchored to the same authored world location.
+    musicSliderWorldX += dx;
+    musicSliderWorldY += dy;
+    updateMusicVolumeUiPosition();
 }
 
 function getWorldBounds(spriteSize = 0) {
@@ -408,7 +413,7 @@ const DAY_WORLD_MAP_SRC = worldMapEl?.getAttribute('src') || "Assets/Maps/Tomer'
 const NIGHT_WORLD_MAP_SRC = "Assets/Nighttime/Tomer'sWebsiteFinalWorld2Night.png";
 const DAY_SEA_TILE_IMAGE = getComputedStyle(root).getPropertyValue('--seaTileImage').trim()
     || 'url("Assets/Tomer\'sWebsiteSeaTile.png")';
-const NIGHT_SEA_TILE_IMAGE = 'url("Assets/Nighttime/Tomer\'sWebsiteSeaTileNight.png")';
+const NIGHT_SEA_TILE_IMAGE = 'url("Assets/Nighttime/TomersWebsiteSeaTileNight.png")';
 
 const MUSIC_TRACKS = [
     "Assets/Music/AvapXia - Cliff Jumper.mp3",
@@ -418,11 +423,13 @@ const MUSIC_TRACKS = [
     "Assets/Music/RoccoW - When the Leaves Leaf.mp3",
 ];
 const MUSIC_DEFAULT_VOLUME = 0.65;
-const MUSIC_SLIDER_WORLD_X = 2230;
-const MUSIC_SLIDER_WORLD_Y = 2220;
+const MUSIC_SLIDER_WORLD_X = 2160;
+const MUSIC_SLIDER_WORLD_Y = 2170;
 const MUSIC_SLIDER_LENGTH_PX = 260;
 const MUSIC_SLIDER_THUMB_SIZE_PX = 50;
 const MUSIC_SLIDER_THUMB_IMAGE = "Assets/Music/WebsiteMusicSlider.png"; // Example: "Assets/WebsiteVolumeKnob.png"
+let musicSliderWorldX = MUSIC_SLIDER_WORLD_X;
+let musicSliderWorldY = MUSIC_SLIDER_WORLD_Y;
 
 let musicAudio = null;
 let musicQueue = [];
@@ -461,8 +468,8 @@ function setMusicVolume(value) {
 
 function updateMusicVolumeUiPosition() {
     if (!musicVolumeUiNode) return;
-    musicVolumeUiNode.style.left = `${Math.round(MUSIC_SLIDER_WORLD_X)}px`;
-    musicVolumeUiNode.style.top = `${Math.round(MUSIC_SLIDER_WORLD_Y)}px`;
+    musicVolumeUiNode.style.left = `${Math.round(musicSliderWorldX)}px`;
+    musicVolumeUiNode.style.top = `${Math.round(musicSliderWorldY)}px`;
     if (musicVolumeSliderNode) {
         musicVolumeSliderNode.style.width = `${Math.max(60, Math.round(MUSIC_SLIDER_LENGTH_PX))}px`;
     }
@@ -1109,6 +1116,7 @@ for (const el of squareEls) {
     const y        = parseFloat(el.dataset.y)  || 0;
     const npcSize = parseNpcSize(el.dataset.size);
     const canMove  = (el.dataset.canMove ?? 'true') !== 'false'; // default: true
+    const canClipWalls = (el.dataset.canClipWalls ?? 'false') === 'true';
     const diagMode = el.dataset.dialogueMode || 'sequence';
     const textBoxTypeRaw = (el.dataset.textBoxType || el.dataset.textboxType || '').trim().toLowerCase();
     const textBoxType = textBoxTypeRaw === 'try' ? 'try' : 'default';
@@ -1180,6 +1188,7 @@ for (const el of squareEls) {
     squareStates[id] = {
         el, id, x, y,
         canMove,
+        canClipWalls,
         baseCanMove: canMove,
         state:    'idle',
         timerMs:  randRange(800, 2400),
@@ -1747,7 +1756,9 @@ function updateSquares(dt) {
             const spriteSize = Math.max(s.el.offsetWidth || 0, s.el.offsetHeight || 0)
                 || parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
             if (spriteSize <= 0) continue;
-            const spawn = findNearestValidPosition(s.x, s.y, spriteSize);
+            const spawn = s.canClipWalls
+                ? { x: s.x, y: s.y }
+                : findNearestValidPosition(s.x, s.y, spriteSize);
             const clamped = clampToArena(spawn.x, spawn.y, spriteSize);
             s.x = clamped.x;
             s.y = clamped.y;
@@ -1776,7 +1787,7 @@ function updateSquares(dt) {
             }
         }
 
-        if (!isDragged && spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
+        if (!s.canClipWalls && !isDragged && spriteSize > 0 && isSpriteFeetBlocked(s.x, s.y, spriteSize)) {
             const unstuck = findNearestValidPosition(s.x, s.y, spriteSize);
             const clamped = clampToArena(unstuck.x, unstuck.y, spriteSize);
             s.x = clamped.x;
@@ -1847,7 +1858,7 @@ function updateSquares(dt) {
                 
                 const npcFeetX = nx + (el.offsetWidth  || 0) / 2;
                 const npcFeetY = ny + (el.offsetHeight || 0);
-                if (!isBlockedAt(npcFeetX, npcFeetY)) {
+                if (s.canClipWalls || !isBlockedAt(npcFeetX, npcFeetY)) {
                     s.x = nx; s.y = ny;
                 } else {
                     s.dirX *= -1; s.dirY *= -1;  // bounce off wall
@@ -2511,7 +2522,9 @@ function dropDragged() {
     } else {
         const s = squareStates[dragState.id];
         if (s) {
-            const valid = findNearestValidPosition(s.x, s.y, spriteSize);
+            const valid = s.canClipWalls
+                ? clampToArena(s.x, s.y, spriteSize)
+                : findNearestValidPosition(s.x, s.y, spriteSize);
             s.x = valid.x;
             s.y = valid.y;
             s.el.style.left = `${Math.round(s.x)}px`;

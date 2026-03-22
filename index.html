@@ -77,6 +77,9 @@
           data-can-move         "true"  → NPC wanders randomly around the arena.
                                 "false" → NPC stands still (use for signs,
                                           items, or fixed characters).
+          data-can-clip-walls   "true"  → NPC ignores wall hitbox collision and
+                                          can be placed inside blocked tiles.
+                                "false" → normal wall collision behavior.
 
           DIALOGUE
           ─────────────────────────────────────────────────────────────────
@@ -244,7 +247,7 @@
           data-walk-2="Assets/NPC/WebsiteGhostWalk2.png"
           data-can-move="true"
           data-dialogue-mode="sequence"
-          data-dialogue="{size_change:38}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:36}Do you want to see some past projects? || {size_change:40}Well Here You Go! || Look around my halls to find avatars and || And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
+          data-dialogue="{size_change:38}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:30}Do you want to see some past projects? || {size_change:40}Well Here You Go! || Look around my halls to find avatars and /n infromative books on every past Project /n documented by me!|| And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
       </div>
 
        <div class="game-square" id="square9"
@@ -418,6 +421,32 @@
           data-button-off-idle2="Assets/Music/WebsiteJukeboxOn2.png"
           data-button-on-idle1="Assets/Music/WebsiteJukeboxOff.png">
         </div>
+
+        <div class="game-square" id="square22"
+          data-x="3700" data-y="226"
+          data-size="110, 110"
+          data-idle-1="Assets/Mobile/MobileGhost1.png"
+          data-idle-2="Assets/Mobile/MobileGhost1.png"
+          data-walk-1="Assets/NPC/HorseEmpire/WebsiteNPCHorseWalk1.png"
+          data-walk-2="Assets/NPC/HorseEmpire/WebsiteNPCHorseWalk2.png"
+          data-can-move="false"
+          data-can-clip-walls="true"
+          data-dialogue-mode="sequence"
+          data-dialogue="- Low Bit Ghost : 2026">
+      </div>
+
+       <div class="game-square" id="square23"
+          data-x="3910" data-y="190"
+          data-size="100, 100"
+          data-idle-1="Assets/Maps/Tomer'sWebsiteTempWorld2.png"
+          data-idle-2="Assets/Maps/Tomer'sWebsiteTempWorld2.png"
+          data-walk-1="Assets/NPC/HorseEmpire/WebsiteNPCHorseWalk1.png"
+          data-walk-2="Assets/NPC/HorseEmpire/WebsiteNPCHorseWalk2.png"
+          data-can-move="false"
+          data-can-clip-walls="true"
+          data-dialogue-mode="sequence"
+          data-dialogue="- Old Website Map : 2026">
+      </div>
 
         <!-- Player sprite — do not remove -->
         <img id="player" class="player-sprite" src="Assets/Tomer'sWebsitePlayerIdle1.png" alt="Player sprite">

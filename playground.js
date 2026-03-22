@@ -15,6 +15,14 @@ const dialogueName = document.getElementById('dialogueName');
 const dialogueText = document.getElementById('dialogueText');
 const tomeboyFrame = document.getElementById('tomeboy-frame');
 
+const musicAnnounceEl = document.createElement('div');
+musicAnnounceEl.id = 'music-announcer';
+musicAnnounceEl.className = 'music-announcer';
+musicAnnounceEl.setAttribute('aria-live', 'polite');
+musicAnnounceEl.setAttribute('aria-atomic', 'true');
+musicAnnounceEl.hidden = true;
+if (arena) arena.appendChild(musicAnnounceEl);
+
 const hitboxCanvas = document.getElementById('hitbox-canvas');
 const hitboxCtx = hitboxCanvas ? hitboxCanvas.getContext('2d', { willReadFrequently: true }) : null;
 const worldHitboxImg = document.getElementById('world-hitbox');
@@ -55,6 +63,7 @@ function updateWorldPlacement() {
 
   worldMapEl.style.left = `${worldMapOffsetX}px`;
   worldMapEl.style.top = `${worldMapOffsetY}px`;
+  updateMusicAnnouncerPosition();
 }
 
 function updateDialogueLayoutFromTomeboy() {
@@ -175,6 +184,70 @@ let playgroundMusicStarted = false;
 let playgroundMusicPaused = false;
 let playgroundMusicSkipRequested = false;
 let playgroundMusicVolume = MUSIC_DEFAULT_VOLUME;
+let musicAnnounceHideTimer = null;
+let musicAnnounceShowRaf = 0;
+let musicAnnounceSequence = 0;
+
+function getMusicTrackLabel(trackPath) {
+  const path = String(trackPath || '').trim();
+  if (!path) return 'Unknown Track';
+  const file = path.split('/').pop() || path;
+  const withoutExt = file.replace(/\.[^/.]+$/, '');
+  return withoutExt.trim() || 'Unknown Track';
+}
+
+function updateMusicAnnouncerPosition() {
+  if (!musicAnnounceEl || !worldMapEl) return;
+  const x = Math.round(worldMapOffsetX + getVar('--musicAnnounceOffsetX', 0));
+  const y = Math.round(worldMapOffsetY + getVar('--musicAnnounceOffsetY', 0));
+  musicAnnounceEl.style.left = `${x}px`;
+  musicAnnounceEl.style.top = `${y}px`;
+}
+
+function showMusicAnnouncement(trackPath) {
+  if (!musicAnnounceEl) return;
+  musicAnnounceSequence += 1;
+  const sequenceId = musicAnnounceSequence;
+  const label = getMusicTrackLabel(trackPath);
+  const visibleMs = Math.max(0, getVar('--musicAnnounceVisibleMs', 2200));
+  const fadeMs = Math.max(0, getVar('--musicAnnounceFadeMs', 350));
+
+  musicAnnounceEl.textContent = `Now Playing: ${label}`;
+  musicAnnounceEl.style.setProperty('--musicAnnounceFadeMs', `${fadeMs}ms`);
+  updateMusicAnnouncerPosition();
+
+  if (musicAnnounceShowRaf) cancelAnimationFrame(musicAnnounceShowRaf);
+  musicAnnounceEl.classList.remove('is-visible');
+  musicAnnounceEl.hidden = false;
+
+  // Defer class add so the browser paints the hidden state first, then fades in.
+  musicAnnounceShowRaf = requestAnimationFrame(() => {
+    musicAnnounceShowRaf = requestAnimationFrame(() => {
+      if (sequenceId !== musicAnnounceSequence) return;
+      musicAnnounceEl.classList.add('is-visible');
+    });
+  });
+
+  if (musicAnnounceHideTimer) clearTimeout(musicAnnounceHideTimer);
+  musicAnnounceHideTimer = window.setTimeout(() => {
+    if (sequenceId !== musicAnnounceSequence) return;
+    musicAnnounceEl.classList.remove('is-visible');
+
+    const onFadeOutEnd = (event) => {
+      if (event.target !== musicAnnounceEl) return;
+      if (sequenceId !== musicAnnounceSequence) return;
+      if (!musicAnnounceEl.classList.contains('is-visible')) {
+        musicAnnounceEl.hidden = true;
+      }
+    };
+
+    musicAnnounceEl.addEventListener('transitionend', onFadeOutEnd, { once: true });
+
+    if (fadeMs === 0) {
+      musicAnnounceEl.hidden = true;
+    }
+  }, visibleMs);
+}
 
 function playgroundClamp01(value) {
     const n = Number(value);
@@ -228,6 +301,8 @@ function playgroundPlayNextMusicTrack() {
     if (playgroundMusicPaused) {
         return;
     }
+
+    showMusicAnnouncement(nextTrack);
 
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
@@ -496,6 +571,51 @@ function getNextDialogueText(id) {
   return cfg.texts[idx];
 }
 
+function renderDialogueText(rawText) {
+  const text = String(rawText || '').replace(/\/n/g, '\n');
+  const linkTokenRegex = /\{link:([^|}]+)\|([^}]+)\}/g;
+  let match;
+  let lastIndex = 0;
+  let foundLink = false;
+
+  dialogueText.textContent = '';
+  const fragment = document.createDocumentFragment();
+
+  while ((match = linkTokenRegex.exec(text)) !== null) {
+    foundLink = true;
+
+    if (match.index > lastIndex) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+
+    const label = match[1].trim();
+    let href = match[2].trim();
+    if (!/^([a-zA-Z][a-zA-Z0-9+.-]*:)?\/\//.test(href) && !href.startsWith('mailto:') && !href.startsWith('/')) {
+      href = `https://${href}`;
+    }
+
+    const link = document.createElement('a');
+    link.href = href;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = label || href;
+    fragment.appendChild(link);
+
+    lastIndex = linkTokenRegex.lastIndex;
+  }
+
+  if (!foundLink) {
+    dialogueText.textContent = text;
+    return;
+  }
+
+  if (lastIndex < text.length) {
+    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+
+  dialogueText.appendChild(fragment);
+}
+
 function isOverlapping(elA, elB) {
   if (!elA || !elB) return false;
   const a = elA.getBoundingClientRect();
@@ -531,7 +651,7 @@ function handleAction() {
   
   // Handle dialogue type NPCs
   dialogueName.textContent = id;
-  dialogueText.textContent = getNextDialogueText(id).replace(/\/n/g, '\n');
+  renderDialogueText(getNextDialogueText(id));
   dialogueBox.hidden = false;
 }
 
