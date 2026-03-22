@@ -517,7 +517,7 @@ body.custom-cursor-active * {
   gap: 12px;
   background: white;
   color: #111;
-  border-radius: 6px;
+  border-radius: 0;
   padding: 8px 10px;
   font-family: var(--dialogueFontFamily);
   font-size: var(--dialogueFontSize);

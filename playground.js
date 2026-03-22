@@ -54,7 +54,6 @@ function updateWorldPlacement() {
   const centerOffsetX = getVar('--worldCenterOffsetX', 0);
   const offsetY = getVar('--worldOffsetY', 120);
 
-
   const centeredY = window.innerHeight / 2 - arenaRect.top - worldHeight / 2 + offsetY;
   const centeredX = window.innerWidth / 2 - arenaRect.left - worldWidth / 2 + centerOffsetX;
   worldMapOffsetX = Math.round(centeredX);
@@ -112,6 +111,12 @@ function updateRedirectAreaLayoutFromTomeboy() {
   redirectArea.style.top = `${Math.round(topPx)}px`;
   redirectArea.style.width = `${Math.round(widthPx)}px`;
   redirectArea.style.height = `${Math.round(heightPx)}px`;
+}
+
+function refreshViewportLayout() {
+  updateWorldPlacement();
+  updateDialogueLayoutFromTomeboy();
+  updateRedirectAreaLayoutFromTomeboy();
 }
 
 function isBlockedAt(arenaX, arenaY) {
@@ -312,6 +317,20 @@ function playgroundEnsureMusicAudio() {
     return audio;
 }
 
+  function syncMusicStartedFromPlayResult(playPromise) {
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise
+        .then(() => {
+          playgroundMusicStarted = true;
+        })
+        .catch(() => {
+          playgroundMusicStarted = false;
+        });
+      return;
+    }
+    playgroundMusicStarted = true;
+  }
+
 function playgroundPlayNextMusicTrack() {
     if (!MUSIC_TRACKS_PLAYGROUND.length) return;
     const audio = playgroundEnsureMusicAudio();
@@ -327,19 +346,7 @@ function playgroundPlayNextMusicTrack() {
     }
 
     showMusicAnnouncement(nextTrack);
-
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise
-            .then(() => {
-                playgroundMusicStarted = true;
-            })
-            .catch(() => {
-                playgroundMusicStarted = false;
-            });
-    } else {
-        playgroundMusicStarted = true;
-    }
+    syncMusicStartedFromPlayResult(audio.play());
 }
 
 function playgroundMaybeStartMusicPlayback() {
@@ -364,26 +371,15 @@ function playgroundSetMusicPaused(value) {
         return;
     }
 
-    const resumePromise = playgroundMusicAudio.play();
-    if (resumePromise && typeof resumePromise.catch === 'function') {
-        resumePromise
-            .then(() => {
-                playgroundMusicStarted = true;
-            })
-            .catch(() => {
-                playgroundMusicStarted = false;
-            });
-    } else {
-        playgroundMusicStarted = true;
-    }
+    syncMusicStartedFromPlayResult(playgroundMusicAudio.play());
 }
 
 function playgroundSetMusicSkipRequested(value) {
-    const next = Boolean(value);
-    playgroundMusicSkipRequested = next;
-    if (!next) return;
-    playgroundPlayNextMusicTrack();
-    playgroundMusicSkipRequested = false;
+  const next = Boolean(value);
+  playgroundMusicSkipRequested = next;
+  if (!next) return;
+  playgroundPlayNextMusicTrack();
+  playgroundMusicSkipRequested = false;
 }
 
 function parseIndexedFrames(dataset, prefix) {
@@ -604,15 +600,7 @@ for (const id of Object.keys(squareStates)) {
   }
 }
 
-function setDialogueFont(url, fontFamily) {
-    if (!url || !fontFamily) return;
-    const linkId = 'dialogue-font-link' + btoa(url).replace(/=/g, '');
-    if (!document.getElementById(linkId)) {
-        const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: url, id: linkId });
-        document.head.appendChild(link);
-    }
-    root.style.setProperty('--dialogueFontFamily', fontFamily);
-}
+
 
 function getNextDialogueText(id) {
   const cfg = dialogueConfig[id];
@@ -858,10 +846,12 @@ function makeHoldable(btn, dir) {
   });
 }
 
-makeHoldable(leftBtn, 'left');
-makeHoldable(rightBtn, 'right');
-makeHoldable(upBtn, 'up');
-makeHoldable(downBtn, 'down');
+[
+  [leftBtn, 'left'],
+  [rightBtn, 'right'],
+  [upBtn, 'up'],
+  [downBtn, 'down'],
+].forEach(([btn, dir]) => makeHoldable(btn, dir));
 
 // Attempt autoplay immediately, then unlock on first user interaction if blocked.
 playgroundMaybeStartMusicPlayback();
@@ -871,6 +861,25 @@ document.addEventListener('keydown', playgroundMaybeStartMusicPlayback, { once: 
 document.addEventListener('pointerup', () => {
   pressed.left = pressed.right = pressed.up = pressed.down = false;
 });
+
+const movementKeyMap = {
+  arrowleft: 'left',
+  a: 'left',
+  arrowright: 'right',
+  d: 'right',
+  arrowup: 'up',
+  w: 'up',
+  arrowdown: 'down',
+  s: 'down',
+};
+
+function setDirectionFromKey(key, isPressed) {
+  const dir = movementKeyMap[String(key || '').toLowerCase()];
+  if (!dir) return false;
+  pressed[dir] = isPressed;
+  if (isPressed && (dir === 'left' || dir === 'right')) lastDirection = dir;
+  return true;
+}
 
 sprintBtn?.addEventListener('click', () => {
   sprintToggled = !sprintToggled;
@@ -886,75 +895,32 @@ if (redirectArea) {
 }
 
 document.addEventListener('keydown', (e) => {
-  switch (e.key) {
-    case 'ArrowLeft':
-    case 'a':
-    case 'A':
-      pressed.left = true;
-      lastDirection = 'left';
-      e.preventDefault();
-      break;
-    case 'ArrowRight':
-    case 'd':
-    case 'D':
-      pressed.right = true;
-      lastDirection = 'right';
-      e.preventDefault();
-      break;
-    case 'ArrowUp':
-    case 'w':
-    case 'W':
-      pressed.up = true;
-      e.preventDefault();
-      break;
-    case 'ArrowDown':
-    case 's':
-    case 'S':
-      pressed.down = true;
-      e.preventDefault();
-      break;
-    case ' ':
-    case 'Spacebar':
-      handleAction();
-      e.preventDefault();
-      break;
-    case 'n':
-    case 'N':
-      playgroundPlayNextMusicTrack();
-      e.preventDefault();
-      break;
-    case 'Shift':
-      sprintHeld = true;
-      break;
+  if (setDirectionFromKey(e.key, true)) {
+    e.preventDefault();
+  } else {
+    switch (e.key) {
+      case ' ':
+      case 'Spacebar':
+        handleAction();
+        e.preventDefault();
+        break;
+      case 'n':
+      case 'N':
+        playgroundPlayNextMusicTrack();
+        e.preventDefault();
+        break;
+      case 'Shift':
+        sprintHeld = true;
+        break;
+    }
   }
   playgroundMaybeStartMusicPlayback();
 });
 
 document.addEventListener('keyup', (e) => {
-  switch (e.key) {
-    case 'ArrowLeft':
-    case 'a':
-    case 'A':
-      pressed.left = false;
-      break;
-    case 'ArrowRight':
-    case 'd':
-    case 'D':
-      pressed.right = false;
-      break;
-    case 'ArrowUp':
-    case 'w':
-    case 'W':
-      pressed.up = false;
-      break;
-    case 'ArrowDown':
-    case 's':
-    case 'S':
-      pressed.down = false;
-      break;
-    case 'Shift':
-      sprintHeld = false;
-      break;
+  if (setDirectionFromKey(e.key, false)) return;
+  if (e.key === 'Shift') {
+    sprintHeld = false;
   }
 });
 
@@ -1048,12 +1014,8 @@ function loop(timestamp) {
 }
 
 placePlayer();
-updateWorldPlacement();
-updateDialogueLayoutFromTomeboy();
-updateRedirectAreaLayoutFromTomeboy();
+refreshViewportLayout();
 window.addEventListener('resize', () => {
-  updateWorldPlacement();
-  updateDialogueLayoutFromTomeboy();
-  updateRedirectAreaLayoutFromTomeboy();
+  refreshViewportLayout();
 });
 requestAnimationFrame(loop);

@@ -170,13 +170,6 @@ body {
   z-index: 20;
 }
 
-.dialogue-box {
-  position: fixed;
-  inset: var(--dialogueOverlayInset);
-  background: transparent;
-  z-index: 11000;
-}
-
 .dialogue-panel {
   position: absolute;
   left: var(--dialogueBoxLeft);
@@ -191,6 +184,10 @@ body {
 }
 
 .dialogue-box {
+  position: fixed;
+  inset: var(--dialogueOverlayInset);
+  background: transparent;
+  z-index: 11000;
   margin: 8px 0 0;
   font-family: var(--dialogueFontFamily);
   font-size: var(--dialogueFontSize);

@@ -150,9 +150,6 @@ function getWorldOffsetY() {
     return getVar('--worldOffsetY', WORLD_MAP_OFFSET_Y);
 }
 
-let lastAppliedWorldOffsetX = getWorldOffsetX();
-let lastAppliedWorldOffsetY = getWorldOffsetY();
-
 function applyWorldOffsetDelta(dx, dy) {
     if (!dx && !dy) return;
 
@@ -239,8 +236,7 @@ function syncResponsiveOffsets() {
         : 0;
     const worldOffsetX = Math.round(BASE_WORLD_OFFSET_X * scaleX) + reductionLeftPadding;
     const worldOffsetY = Math.round(BASE_WORLD_OFFSET_Y * scaleY);
-    const normalArenaOffsetX = Math.round(BASE_ARENA_OFFSET_X * scaleX);
-    const arenaOffsetX = normalArenaOffsetX;
+    const arenaOffsetX = Math.round(BASE_ARENA_OFFSET_X * scaleX);
     const arenaOffsetY = Math.round(BASE_ARENA_OFFSET_Y * scaleY);
 
     root.style.setProperty('--worldOffsetX', `${worldOffsetX}px`);
@@ -251,9 +247,6 @@ function syncResponsiveOffsets() {
     const dx = worldOffsetX - prevWorldOffsetX;
     const dy = worldOffsetY - prevWorldOffsetY;
     applyWorldOffsetDelta(dx, dy);
-
-    lastAppliedWorldOffsetX = worldOffsetX;
-    lastAppliedWorldOffsetY = worldOffsetY;
 }
 
 function isBlockedAt(arenaX, arenaY) {
@@ -1458,15 +1451,8 @@ try {
     window.musicVolume = musicVolume;
 }
 
-function setDialogueFont(url, fontFamily) {
-    if (!url || !fontFamily) return;
-    const linkId = 'dialogue-font-' + btoa(url).replace(/=/g, '');
-    if (!document.getElementById(linkId)) {
-        const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: url, id: linkId });
-        document.head.appendChild(link);
-    }
-    root.style.setProperty('--dialogueFontFamily', fontFamily);
-}
+
+
 
 // ---------------------------------------------------------------------------
 //  Dialogue UI
@@ -2455,13 +2441,7 @@ const DRAG_LERP_FACTOR = 0.18;  // Smoothing factor for drag motion (0.2 = fast,
 //   targetX/Y:  target position to smoothly interpolate towards
 // }
 
-// Convert a viewport point to arena coordinates
-function viewportToArena(vpX, vpY) {
-    if (!arena) return { x: vpX, y: vpY };
-    const r = arena.getBoundingClientRect();
-    return { x: vpX - r.left + window.scrollX - r.left + arena.getBoundingClientRect().left - arena.getBoundingClientRect().left,
-             y: vpY - r.top };
-}
+
 
 // Simpler version — just subtract arena's page position
 function vpToArena(vpX, vpY) {
