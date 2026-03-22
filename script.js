@@ -2004,11 +2004,11 @@ const MAP_POPUP_IMAGE_SRC = "Assets/WebsiteMap.png";
 const MAP_POPUP_JUMP_POINTS = [
     // x/y/width/height are percentages of popup image bounds (0..1)
     // buttonX/buttonY are applied to --buttonX and --buttonY when pressed.
-    { id: 'map-jump-1', x: 0.10, y: 0.24, width: 0.17, height: 0.24, buttonX: 1650, buttonY: 1003 }, //Houses
-    { id: 'map-jump-2', x: 0.32, y: 0.20, width: 0.20, height: 0.22, buttonX: 2645, buttonY: 755 }, // Mini Games
-    { id: 'map-jump-3', x: 0.63, y: 0.22, width: 0.22, height: 0.16, buttonX: 3735, buttonY: 533 }, // Gallery
-    { id: 'map-jump-4', x: 0.37, y: 0.45, width: 0.24, height: 0.28, buttonX: 3271, buttonY: 2115 }, // Spawn House
-    { id: 'map-jump-5', x: 0.65, y: 0.40, width: 0.21, height: 0.33, buttonX: 4876, buttonY: 1865 }, // Hall of past projects
+    { id: 'map-jump-1', x: 0.10, y: 0.24, width: 0.17, height: 0.24, buttonX: 1300, buttonY: 1003 }, //Houses
+    { id: 'map-jump-2', x: 0.32, y: 0.20, width: 0.20, height: 0.22, buttonX: 2300, buttonY: 755 }, // Mini Games
+    { id: 'map-jump-3', x: 0.63, y: 0.22, width: 0.22, height: 0.16, buttonX: 3400, buttonY: 533 }, // Gallery
+    { id: 'map-jump-4', x: 0.37, y: 0.45, width: 0.24, height: 0.28, buttonX: 3000, buttonY: 2100 }, // Spawn House
+    { id: 'map-jump-5', x: 0.65, y: 0.40, width: 0.21, height: 0.33, buttonX: 4526, buttonY: 1865 }, // Hall of past projects
 ];
 let tomeboyAnimationTimer = null;
 let mapPopupImageEl = null;

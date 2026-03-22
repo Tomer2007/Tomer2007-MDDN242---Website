@@ -47,8 +47,13 @@
   --redirectAreaWidthScale: 0.68;
   --redirectAreaHeightScale: 0.098;
   --redirectAreaXOffset: 0px;
-  --redirectAreaYOffset: -140px;
+  --redirectAreaYOffset: 440px;
   --redirectAreaFontSize: 26px;
+
+  --playgroundTileSprite: url('Assets/GuideBook/GuideBookBackground.png');
+  --playgroundTileBaseSize: calc(480px * var(--ctrl-scale));
+  --playgroundTileScale: 1.2;
+  --playgroundTileSize: calc(var(--playgroundTileBaseSize) * var(--playgroundTileScale));
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +61,11 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #160839;
+  background-color: #160839;
+  background-image: var(--playgroundTileSprite);
+  background-repeat: repeat;
+  background-position: 0 0;
+  background-size: var(--playgroundTileSize) var(--playgroundTileSize);
   color: #595939;
   overflow: hidden;
 }
