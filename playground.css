@@ -41,6 +41,14 @@
   --musicAnnounceFontSize: 14px;
   --musicAnnounceVisibleMs: 2200;
   --musicAnnounceFadeMs: 350;
+
+  --redirectAreaXScale: 0.17;
+  --redirectAreaYScale: 0.245;
+  --redirectAreaWidthScale: 0.68;
+  --redirectAreaHeightScale: 0.098;
+  --redirectAreaXOffset: 0px;
+  --redirectAreaYOffset: -140px;
+  --redirectAreaFontSize: 26px;
 }
 
 * { box-sizing: border-box; }
@@ -99,6 +107,28 @@ body {
 .music-announcer.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+#mobile-redirect-area {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 320px;
+  height: 56px;
+  z-index: 11500;
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+  font-size: var(--redirectAreaFontSize);
+  line-height: 1;
+  font-family: "Micro 5", Arial, sans-serif;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.3);
+  padding: 0 8px;
 }
 
 .game-square {

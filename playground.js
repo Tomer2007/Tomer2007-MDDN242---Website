@@ -14,6 +14,7 @@ const dialoguePanel = dialogueBox?.querySelector('.dialogue-panel') || null;
 const dialogueName = document.getElementById('dialogueName');
 const dialogueText = document.getElementById('dialogueText');
 const tomeboyFrame = document.getElementById('tomeboy-frame');
+const redirectArea = document.getElementById('mobile-redirect-area');
 
 const musicAnnounceEl = document.createElement('div');
 musicAnnounceEl.id = 'music-announcer';
@@ -88,6 +89,29 @@ function updateDialogueLayoutFromTomeboy() {
   dialoguePanel.style.width = `${Math.round(widthPx)}px`;
   dialoguePanel.style.top = `${Math.round(topPx)}px`;
   dialoguePanel.style.height = `${Math.round(heightPx)}px`;
+}
+
+function updateRedirectAreaLayoutFromTomeboy() {
+  if (!redirectArea || !tomeboyFrame) return;
+  const rect = tomeboyFrame.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const xScale = getVar('--redirectAreaXScale', 0.17);
+  const yScale = getVar('--redirectAreaYScale', 0.245);
+  const widthScale = getVar('--redirectAreaWidthScale', 0.68);
+  const heightScale = getVar('--redirectAreaHeightScale', 0.098);
+  const xOffset = getVar('--redirectAreaXOffset', 0);
+  const yOffset = getVar('--redirectAreaYOffset', 0);
+
+  const leftPx = rect.left + rect.width * xScale + xOffset;
+  const topPx = rect.top + rect.height * yScale + yOffset;
+  const widthPx = Math.max(100, rect.width * widthScale);
+  const heightPx = Math.max(32, rect.height * heightScale);
+
+  redirectArea.style.left = `${Math.round(leftPx)}px`;
+  redirectArea.style.top = `${Math.round(topPx)}px`;
+  redirectArea.style.width = `${Math.round(widthPx)}px`;
+  redirectArea.style.height = `${Math.round(heightPx)}px`;
 }
 
 function isBlockedAt(arenaX, arenaY) {
@@ -362,6 +386,27 @@ function playgroundSetMusicSkipRequested(value) {
     playgroundMusicSkipRequested = false;
 }
 
+function parseIndexedFrames(dataset, prefix) {
+  const lowerPrefix = String(prefix || '').toLowerCase();
+  const frames = [];
+
+  for (const key of Object.keys(dataset || {})) {
+    const lowerKey = key.toLowerCase();
+    if (!lowerKey.startsWith(lowerPrefix)) continue;
+
+    const suffix = key.slice(prefix.length);
+    if (!/^\d+$/.test(suffix)) continue;
+
+    const order = parseInt(suffix, 10);
+    const value = String(dataset[key] || '').trim();
+    if (!value) continue;
+    frames.push({ order, value });
+  }
+
+  frames.sort((a, b) => a.order - b.order);
+  return frames.map(f => f.value);
+}
+
 // Expose as window properties
 Object.defineProperty(window, 'playgroundMusicPaused', {
     get() { return playgroundMusicPaused; },
@@ -501,6 +546,21 @@ for (const el of squareEls) {
     el.dataset['walk-2'] || 'Assets/WebsiteNPC1Walk2.png'
   ];
 
+  const buttonOffFramesIndexed = parseIndexedFrames(el.dataset, 'buttonOffIdle');
+  const buttonOnFramesIndexed = parseIndexedFrames(el.dataset, 'buttonOnIdle');
+  const buttonOffLegacy = (el.dataset.buttonOffIdle || '').trim();
+  const buttonOnLegacy = (el.dataset.buttonOnIdle || '').trim();
+
+  const defaultOffFrame = el.dataset['button-off-idle1'] || buttonOffLegacy || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png';
+  const defaultOnFrame = el.dataset['button-on-idle1'] || buttonOnLegacy || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png';
+
+  const offFrames = buttonOffFramesIndexed.length
+    ? buttonOffFramesIndexed
+    : [defaultOffFrame, el.dataset['button-off-idle2'] || defaultOffFrame];
+  const onFrames = buttonOnFramesIndexed.length
+    ? buttonOnFramesIndexed
+    : [defaultOnFrame, el.dataset['button-on-idle2'] || defaultOnFrame];
+
   squareStates[id] = {
     id,
     el,
@@ -526,14 +586,8 @@ for (const el of squareEls) {
       targetPath: String(el.dataset.actionTarget || '').trim(),
       actionMode: (el.dataset.actionMode || 'toggle').toLowerCase(),
       actionValue: el.dataset.actionValue || null,
-      offFrames: [
-        el.dataset['button-off-idle1'] || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
-        el.dataset['button-off-idle2'] || el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
-      ],
-      onFrames: [
-        el.dataset['button-on-idle1'] || el.dataset['idle-1'] || 'Assets/WebsiteNPC1Idle1.png',
-        el.dataset['button-on-idle2'] || el.dataset['idle-2'] || 'Assets/WebsiteNPC1Idle2.png'
-      ]
+      offFrames,
+      onFrames
     } : null,
   };
 
@@ -809,6 +863,11 @@ makeHoldable(rightBtn, 'right');
 makeHoldable(upBtn, 'up');
 makeHoldable(downBtn, 'down');
 
+// Attempt autoplay immediately, then unlock on first user interaction if blocked.
+playgroundMaybeStartMusicPlayback();
+document.addEventListener('pointerdown', playgroundMaybeStartMusicPlayback, { once: true, capture: true });
+document.addEventListener('keydown', playgroundMaybeStartMusicPlayback, { once: true, capture: true });
+
 document.addEventListener('pointerup', () => {
   pressed.left = pressed.right = pressed.up = pressed.down = false;
 });
@@ -818,7 +877,6 @@ sprintBtn?.addEventListener('click', () => {
   sprintBtn.setAttribute('aria-pressed', String(sprintToggled));
 });
 
-const redirectArea = document.getElementById('mobile-redirect-area');
 if (redirectArea) {
   redirectArea.addEventListener('click', (e) => {
     e.preventDefault();
@@ -992,8 +1050,10 @@ function loop(timestamp) {
 placePlayer();
 updateWorldPlacement();
 updateDialogueLayoutFromTomeboy();
+updateRedirectAreaLayoutFromTomeboy();
 window.addEventListener('resize', () => {
   updateWorldPlacement();
   updateDialogueLayoutFromTomeboy();
+  updateRedirectAreaLayoutFromTomeboy();
 });
 requestAnimationFrame(loop);
