@@ -9,8 +9,7 @@
      1.0 = normal size, 1.2 = 20% larger, 0.8 = 20% smaller, etc.
   */
   --zoom-desktop: 1.0;   /* zoom level on desktop / large screens */
-  --zoom-mobile:  1;   /* zoom level on mobile  / small screens  */
-
+  
     /* ── MAP POPUP ─────────────────────────────────────────────────────────────
       Base popup image size and independent close-hitbox X/Y scale.
       close area scale: 1 = full image box, 0.9 = 90%, etc.

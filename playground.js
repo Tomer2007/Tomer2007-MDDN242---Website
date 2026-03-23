@@ -1,5 +1,15 @@
 const root = document.documentElement;
 
+function disableNativeImageDrag() {
+  document.addEventListener('dragstart', (e) => {
+    if (e.target instanceof HTMLImageElement) {
+      e.preventDefault();
+    }
+  }, true);
+}
+
+disableNativeImageDrag();
+
 const player = document.getElementById('player');
 const arena = document.getElementById('arena');
 const worldMapEl = document.querySelector('.world-map');

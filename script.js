@@ -15,6 +15,16 @@ const CUSTOM_CURSOR_BOUNDS_SCALE_Y = 1.55;
 let customCursorEl = null;
 let customCursorPressed = false;
 
+function disableNativeImageDrag() {
+    document.addEventListener('dragstart', (e) => {
+        if (e.target instanceof HTMLImageElement) {
+            e.preventDefault();
+        }
+    }, true);
+}
+
+disableNativeImageDrag();
+
 function isFinePointerDevice() {
     return window.matchMedia && window.matchMedia('(pointer:fine)').matches;
 }
@@ -106,7 +116,6 @@ function getVar(name, fallback = 0) {
 //  To change the zoom level, edit --zoom-desktop / --zoom-mobile in styles.css.
 // ---------------------------------------------------------------------------
 
-const isMobile = window.innerWidth < 900;
 
 const hitboxCanvas = document.getElementById('hitbox-canvas');
 const hitboxCtx    = hitboxCanvas ? hitboxCanvas.getContext('2d', { willReadFrequently: true }) : null;
@@ -274,6 +283,15 @@ function isSpriteFeetBlocked(arenaX, arenaY, spriteSize) {
         || isBlockedAt(arenaX + spriteSize * 0.8, arenaY + spriteSize - COLLISION_FEET_OFFSET);
 }
 
+// Stricter check: returns true if sprite is within 2 pixels of a wall
+function isNearWall(arenaX, arenaY, spriteSize) {
+    const offset = 8; // pixels from edge to check
+    return isBlockedAt(arenaX + offset, arenaY + spriteSize - COLLISION_FEET_OFFSET)
+        || isBlockedAt(arenaX + spriteSize - offset, arenaY + spriteSize - COLLISION_FEET_OFFSET)
+        || isBlockedAt(arenaX + spriteSize * 0.5, arenaY + offset)
+        || isBlockedAt(arenaX + spriteSize * 0.5, arenaY + spriteSize - offset);
+}
+
 function clampToArena(arenaX, arenaY, spriteSize) {
     const maxX = Math.max(0, (arena?.clientWidth  || 0) - spriteSize);
     const maxY = Math.max(0, (arena?.clientHeight || 0) - spriteSize);
@@ -293,8 +311,7 @@ const CONTROLS_OFFSET_X =   0;   // px
 const CONTROLS_OFFSET_Y =   325;   // px
 
 (function applyZoom() {
-    const varName = isMobile ? '--zoom-mobile' : '--zoom-desktop';
-    const zoom    = getVar(varName, 1.0);
+    const zoom    = getVar('--zoom-desktop', 1.0);
     const zoomRoot = document.getElementById('zoom-root');
     if (!zoomRoot) return;
     zoomRoot.style.transformOrigin = 'top left';
@@ -855,9 +872,9 @@ function randomPointInCoopArea(rect) {
 
 function randomPointOutsideCoopArea(rect) {
     const minX = 1000;
-    const maxX = 5000;
+    const maxX = 3000;
     const minY = 100;
-    const maxY = 5000;
+    const maxY = 3000;
     for (let i = 0; i < 250; i++) {
         const point = { x: randInt(minX, maxX), y: randInt(minY, maxY) };
         if (!isPointInsideRect(point.x, point.y, rect)) return point;
@@ -1495,6 +1512,15 @@ function hideDialogue() {
 
 function closeDialogueOnClickOutside(e) {
     if (!dialogueNode) return;
+    const textBoxType = dialogueNode.dataset.textBoxType;
+    
+    // For try dialogue: close on any click (inside text or outside)
+    if (textBoxType === 'try') {
+        hideDialogue();
+        return;
+    }
+    
+    // For regular dialogue: close only on clicks outside the box
     if (!dialogueNode.contains(e.target)) {
         hideDialogue();
     }
@@ -1742,9 +1768,16 @@ function updateSquares(dt) {
             const spriteSize = Math.max(s.el.offsetWidth || 0, s.el.offsetHeight || 0)
                 || parsePx(getComputedStyle(root).getPropertyValue('--playerSize'));
             if (spriteSize <= 0) continue;
-            const spawn = s.canClipWalls
-                ? { x: s.x, y: s.y }
-                : findNearestValidPosition(s.x, s.y, spriteSize);
+            
+            // For NPCs that can't clip walls, check both collision and proximity
+            let spawn = { x: s.x, y: s.y };
+            if (!s.canClipWalls) {
+                // Use strict spawn validation: nudge away if near walls (within 2px)
+                if (isSpriteFeetBlocked(s.x, s.y, spriteSize) || isNearWall(s.x, s.y, spriteSize)) {
+                    spawn = findNearestValidPosition(s.x, s.y, spriteSize);
+                }
+            }
+            
             const clamped = clampToArena(spawn.x, spawn.y, spriteSize);
             s.x = clamped.x;
             s.y = clamped.y;
@@ -1841,7 +1874,8 @@ function updateSquares(dt) {
                 if (ny < 0)       { ny = 0;       s.dirY *= -1; }
                 if (nx > maxLeft) { nx = maxLeft; s.dirX *= -1; }
                 if (ny > maxTop)  { ny = maxTop;  s.dirY *= -1; }
-                
+
+
                 const npcFeetX = nx + (el.offsetWidth  || 0) / 2;
                 const npcFeetY = ny + (el.offsetHeight || 0);
                 if (s.canClipWalls || !isBlockedAt(npcFeetX, npcFeetY)) {
@@ -2460,22 +2494,38 @@ function vpToArena(vpX, vpY) {
 
 // Find the nearest non-blocked position within a search radius
 function findNearestValidPosition(arenaX, arenaY, spriteSize) {
+    const Y_AXIS_NUDGE_EXTRA = 4;
     const worldClamped = clampToWorldMap(arenaX, arenaY, spriteSize);
     const origin = clampToArena(worldClamped.x, worldClamped.y, spriteSize);
     function clear(px, py) {
         const mapClamped = clampToWorldMap(px, py, spriteSize);
         const clamped = clampToArena(mapClamped.x, mapClamped.y, spriteSize);
-        return !isSpriteFeetBlocked(clamped.x, clamped.y, spriteSize);
+        // Use strict wall check: must not be blocked AND must not be near walls
+        return !isSpriteFeetBlocked(clamped.x, clamped.y, spriteSize) 
+            && !isNearWall(clamped.x, clamped.y, spriteSize);
     }
     if (clear(origin.x, origin.y)) return origin;
-    // Spiral search outward in steps
-    for (let radius = 4; radius <= 120; radius += 4) {
+    // Spiral search outward — modest steps for gentle nudging
+    for (let radius = 8; radius <= 120; radius += 6) {
         for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
             const tx = origin.x + Math.cos(angle) * radius;
             const ty = origin.y + Math.sin(angle) * radius;
             if (clear(tx, ty)) {
                 const mapClamped = clampToWorldMap(tx, ty, spriteSize);
-                return clampToArena(mapClamped.x, mapClamped.y, spriteSize);
+                const candidate = clampToArena(mapClamped.x, mapClamped.y, spriteSize);
+
+                // Slightly extend vertical nudges so characters clear wall edges.
+                const dy = candidate.y - origin.y;
+                if (Math.abs(dy) > 0.5) {
+                    const extraY = candidate.y + Math.sign(dy) * Y_AXIS_NUDGE_EXTRA;
+                    const extraMapClamped = clampToWorldMap(candidate.x, extraY, spriteSize);
+                    const extraCandidate = clampToArena(extraMapClamped.x, extraMapClamped.y, spriteSize);
+                    if (clear(extraCandidate.x, extraCandidate.y)) {
+                        return extraCandidate;
+                    }
+                }
+
+                return candidate;
             }
         }
     }
@@ -2572,19 +2622,37 @@ function updateDraggedMovement() {
     }
 }
 
+function clearDragListeners() {
+    window.removeEventListener('pointermove', onDragPointerMove);
+    window.removeEventListener('pointerup', onDragPointerUp);
+    window.removeEventListener('pointercancel', onDragPointerUp);
+    window.removeEventListener('contextmenu', onDragContextMenu, true);
+}
+
+function onDragContextMenu(e) {
+    if (!dragState && !pendingDrag) return;
+    e.preventDefault();
+    pendingDrag = null;
+    dropDragged();
+    clearDragListeners();
+}
+
 function onDragPointerUp(e) {
+    if (e.button === 2) {
+        onDragContextMenu(e);
+        return;
+    }
+
     // If we have a pending drag that never converted to real drag, it's a click — trigger NPC action
     if (pendingDrag) {
         triggerNpcAction(pendingDrag.id, pendingDrag.el);
         pendingDrag = null;
-        window.removeEventListener('pointermove', onDragPointerMove);
-        window.removeEventListener('pointerup',   onDragPointerUp);
+        clearDragListeners();
         return;
     }
 
     dropDragged();
-    window.removeEventListener('pointermove', onDragPointerMove);
-    window.removeEventListener('pointerup',   onDragPointerUp);
+    clearDragListeners();
 }
 
 function convertPendingDragToReal(e) {
@@ -2638,6 +2706,8 @@ function startDrag(e, type, id, el) {
 
     window.addEventListener('pointermove', onDragPointerMove);
     window.addEventListener('pointerup',   onDragPointerUp);
+    window.addEventListener('pointercancel', onDragPointerUp);
+    window.addEventListener('contextmenu', onDragContextMenu, true);
 }
 
 // Attach drag listeners to player
@@ -2664,6 +2734,8 @@ for (const { id, el } of Object.values(squareStates)) {
         };
         window.addEventListener('pointermove', onDragPointerMove);
         window.addEventListener('pointerup', onDragPointerUp);
+        window.addEventListener('pointercancel', onDragPointerUp);
+        window.addEventListener('contextmenu', onDragContextMenu, true);
     });
 }
 
