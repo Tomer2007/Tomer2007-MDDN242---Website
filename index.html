@@ -159,13 +159,13 @@
         
         <canvas id="hitbox-canvas" style="display:none;"></canvas>
         <div id="CoopArea"
-          data-x="2180"
-          data-y="2845"
-          data-width="265"
-          data-height="172"
-          style="position:absolute; left:2180px; top:2845px; width:270px; height:177px; border:2px dashed rgba(255,255,255,0.45); background:rgba(255,255,255,0.08); pointer-events:none;"
+          data-x="2170"
+          data-y="2840"
+          data-width="290"
+          data-height="200"
+          style="position:absolute; left:2170px; top:2840px; width:285px; height:192px; border:2px dashed rgba(255,255,255,0.45); background:rgba(255,255,255,0.08); pointer-events:none;"
           aria-hidden="true"></div>
-        <!-- NPC 1 — wandering, sequence dialogue -->
+        <!-- NPC 1 — Housing NPC 1 -->
         <div class="game-square" id="square1"
           data-x="1463" data-y="1228"
             data-idle-1="Assets/NPC/WebsiteNPC2Idle1.png"
@@ -177,7 +177,7 @@
             data-dialogue="Hello — this is Square 1. || I mean this is NPC 1 || Or was it NPC 2 or 3? || I wish I had a name like that /n Ghost guy. || Maybe I should just name myself. || You know what, my name's actually the Ghost of NPC Housing! || ... || No that doesn't sound right.">
         </div>
 
-        <!-- NPC 2 — wandering, random dialogue -->
+        <!-- NPC 2 — Mini Game NPC -->
         <div class="game-square" id="square2"
           data-x="2138" data-y="520"
             data-idle-1="Assets/WebsiteNPC1Idle1.png"
@@ -189,7 +189,7 @@
             data-dialogue="Oh, hey. Welcome to the world. || Sorry there isn't really much to do yet. || What are you looking at me like that for? || It's not like I can just make things for /n for you to do. || ... || Fine you really want something to do? || Then here you go. {link:Click here|https://www.google.com/fbx?fbx=snake_arcade} || Knock yourself out, It's not like /n your gonna beat my score of 3 anyway.">
         </div>
 
-        <!-- NPC 3 — stationary, sequence dialogue with an image token -->
+        <!-- NPC 3 — Beach NPC with stolen images-->
         <div class="game-square" id="square3"
           data-x="3970" data-y="2790"
             data-idle-1="Assets/NPC/WebsiteNPC3Idle1.png"
@@ -201,7 +201,7 @@
             data-dialogue="Hey look at this weird image I found in the files. {img:Assets/ButtonLayout.png|120} || Weird, right? || Oh and I found another one... /n just let me grab it... || Look at that I wonder what it is. {img:Assets/Mobile/MobileNPCIdle1.png|120}|| Anyway that's all I got. /n Now scram.">
         </div>
 
-        <!-- NPC 4 — wandering, random dialogue -->
+        <!-- NPC 4 — Screaming NPC -->
         <div class="game-square" id="square4"
           data-x="940" data-y="1282"
             data-idle-1="Assets/WebsiteNPC1Idle1.png"
@@ -213,6 +213,7 @@
             data-dialogue="{size_change:40}AAAAAAAAAAAGHHHHHHHHH!!!!!! || {size_change:50}AAAAAAAAAAAAHHHHHHH!!!!!!!/n!!!!!!!! || Aaaah. || {size_change:40}AAAAAAAAAAAAAAAAHHHHHHHHHHH!!!!!!!!!!!!!!!! || {size_change:10}I think theres a secret in the west /n building.">
         </div>
 
+        <!-- NPC 5 — Website Guide -->
         <div class="game-square" id="square6"
           data-x="2820" data-y="1890"
             data-idle-1="Assets/WebsiteNPC1Idle1.png"
@@ -223,7 +224,7 @@
             data-dialogue-mode="sequence"
             data-dialogue="{size_change:40}Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya.">
         </div>
-
+        <!-- NPC 6 — The Mobile Chicken -->
         <div class="game-square" id="square7"
           data-x="3920" data-y="3390"
             data-size="50, 50"
@@ -238,7 +239,7 @@
             data-dialogue="{size_change:40}BAAAKAAWWW!!!!! || I Don't Think I'm Meant /n To Be Here || Im Scared || Please Just Take Me Back to the Mobile Version || I feel out of place || Bakaw... ||BAAAAWWWWWKKKKKKK!!!!!!! /n chirp chirp /n BAAAAAAAAKKKKKKAAAAAAAWWWWWW!!!!!!!">
         </div>
 
-    
+        <!-- NPC 7 — Ghost of Project Past -->
         <div class="game-square" id="square8"
           data-x="4529" data-y="1817"
           data-idle-1="Assets/NPC/WebsiteGhostIdle1.png"
@@ -249,7 +250,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="{size_change:38}It is I, the ghost of /n Projects Past! ||{size_change:40} Welcome to my halls! || {size_change:30}Do you want to see some past projects? || {size_change:40}Well Here You Go! || Look around my halls to find avatars and /n infromative books on every past Project /n documented by me!|| And that is all for now! || Yes that is it. /n There isn't really many past projects which are /n published online, but there will be! || I hope, I mean I built this massive hall /n for something to be in it. || Anyways, the Ghost of Projects Past /n Must away! || Farewell, Website User!!! || ... || Pretend I just disappeared!">
       </div>
-
+      <!-- NPC 8 — Horse Empire Avatar -->
        <div class="game-square" id="square9"
          data-x="4180" data-y="1790"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCHorseIdle1.png"
@@ -260,7 +261,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="Wait, don't shoot I've got my ID! || Oh, your not horse security || Sorry, i'm just getting ready to enter the Horse Empire track. || Where is the Horse Empire track? || Well it's right {link:Here|https://groganisntreal.itch.io/horse-empire}. /n It's the 77th most prestigous /n horse race track with a very strict /n entry policy. Which makes sense after /n all the alien invasions, genetic horse mutations, and /n Gateways to Hell. {img:Assets/NPC/HorseEmpire/HorseEmpirePreview.png|240} || What do you mean I'm Mutated? /n My tongue? || I'll let you know I have a very normal /n Horse Tongue, that isn't mutated at all. || ... || Please don't tell anyone. || {link:Horse Empire, Available Now |https://groganisntreal.itch.io/horse-empire} {img:Assets/NPC/HorseEmpire/HorseEmpirePreview.png|240}">
       </div>
-
+      <!-- NPC 9 — Horse Empire Podium Book -->
        <div class="game-square" id="square10"
          data-x="4363" data-y="1684"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png"
@@ -272,7 +273,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="-= Horse Empire =- /n A game created by a group of VUW students /n in Game203. /n Was submitted to Mini 205 : Horse, /n where it placed 77th overall. || Tomer's contribution to the game /n was limited to the programming which /n was rather difficult due to being made /n within the first week of using Godot. || The Game was made in just /n three days. /n /n [The Rest of the Text is Irrelevant] || {link:Horse Empire, Available Now |https://groganisntreal.itch.io/horse-empire} {img:Assets/NPC/HorseEmpire/HorseEmpirePreview.png|320}">
       </div>
-
+      <!-- NPC 10 — Burger Wallpaper Avatar -->
       <div class="game-square" id="square11"
           data-x="4717" data-y="1896"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCHorseIdle1.png"
@@ -283,7 +284,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="Hey, it's me Burger Steve. || I've got tall burgers, vegan burgers, unstable burgers. || Click {link:Here |https://25-dsdn142.github.io/parametric-patterns-Tomer2007/} to view some of the burgers I sell. || I'm Burger Steve.">
       </div>
-
+      <!-- NPC 11 — Burger Wallpaper Podium Book -->
       <div class="game-square" id="square12"
           data-x="4550" data-y="1684"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png"
@@ -295,7 +296,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="-= Burger Wallpaper =- /n A wallpaper made in 2025 for a /n University Course. /n It uses randomly generated variables to make /n a pattern of unique burgers. /n In the code it even has different burger /n modes and settings. || Unfortunately, there isn't any buttons on / the site to change the burger generator. /n So all you can do is refresh the page /n for a new burger pattern. || Click {link:Here |https://25-dsdn142.github.io/parametric-patterns-Tomer2007/} to view the wallpaper. || 'I'm Burger Steve.'">
       </div>
-
+      <!-- NPC 12 — Puppet Fighterz Podium Book -->
       <div class="game-square" id="square13"
           data-x="4550" data-y="1384"
           data-idle-1="Assets/NPC/HorseEmpire/WebsiteNPCPodiumBook.png"
@@ -308,7 +309,7 @@
           data-dialogue="-=-= Puppet Fighterz =-=- /n Is a browser based fighting game /n which uses the webcam to make a fighting game. || By holding your hand infront of the camera /n It will create a Puppet. /n These puppets will be created for each hand. /n Originally they were just meant to be little /n controlable puppets, but they got mad at each other /n and now fight endlessly. || The game includes features like blocking /n (Punching the opponents hand, or /n lowering arms for a block) /n Punching (Punching opponents in the head to /n deal damage) /n and launching Spirit Balls /n (By tapping you pinky and thumb /n together you can start charging a spirit ball, /n releasing it shoots the ball directly at /n the opponents face, where it can /n be blocked by punching). || The game was made for a uni assignment, /n so is no longer being supported, /n despite being in a quite buggy state. || Test it out {link:Here |https://25-dsdn142.github.io/react-Tomer2007/}. [Link currently not working :[ ]">
       </div>
 
-    
+    <!-- NPC 13 — ABOUT ME button -->
       <div class="game-square" id="square14"
         data-x="2570" data-y="1990"
             data-size="140, 80"
@@ -321,7 +322,7 @@
             data-dialogue-mode="sequence"
             data-dialogue="{size_change:80}ABOUT ME|| {size_change:40}I am a second year game design student at VUW. Having spent many years doing game design and learning a variety of engines and coding languages. || {size_change:40}As for professional experience I'm yet to get any, other than my experience in my degree. However, I am eagerly seeking an internship job at one of the Game Development studios in Wellington. || {size_change:40}You can check out past design projects in the HALL OF PROJECTS PAST to the east of this house. || Also I think you should really help with those chickens.">
         </div>
-
+        <!-- NPC 14 — CONTACT button -->
         <div class="game-square" id="square15"
           data-x="3040" data-y="1990"
             data-size="160, 80"
@@ -334,7 +335,7 @@
             data-dialogue-mode="sequence"
             data-dialogue="{size_change:80}CONTACTS|| {size_change:40}Email: thirschauge@gmail.com /n Phone: [Redacted] /n Address: [Redacted] /n IP: 20 /n Itch.io Account: Tomer2007 /n Tomer: Tomer">
         </div>
-
+         <!-- NPC 15 — NEWS button -->
         <div class="game-square" id="square17"
           data-x="2785" data-y="2140"
             data-size="150, 80" 
@@ -348,7 +349,7 @@
             data-dialogue="{size_change:80}NEWSLETTER|| {size_change:40} March 2026: I made a website to show what I'm working on.">
         </div>
 
-    
+         <!-- NPC 16 — LIGHT MODE SWITCH -->
           <div class="game-square" id="square16"
             data-x="3300" data-y="1950"
             data-idle-1="Assets/WebsiteLightModeSwitch.png"
@@ -362,7 +363,7 @@
             data-button-off-idle1="Assets/Nighttime/WebsiteLightModeSwitch.png"
             data-button-on-idle1="Assets/Nighttime/WebsiteDarkModeSwitch.png">
           </div>
-
+           <!-- NPC 17 — MOVEMENT REDUCTION SWITCH -->
           <div class="game-square" id="square18"
             data-x="3400" data-y="1890"
             data-size="152, 152" 
@@ -377,7 +378,7 @@
             data-button-off-idle1="Assets/WebsiteMoveReducedFalse.png"
             data-button-on-idle1="Assets/WebsiteMoveReducedTrue.png">
           </div>
-
+           <!-- NPC 18 — MUSIC PAUSE button -->
           <div class="game-square" id="square19"
             data-x="2200" data-y="2070"
             data-size="80, 80" 
@@ -392,7 +393,7 @@
             data-button-off-idle1="Assets/Music/WebsiteMusicPause.png"
             data-button-on-idle1="Assets/Music/WebsiteMusicPlay.png">
           </div>
-
+           <!-- NPC 19 — MUSIC SKIP button -->
           <div class="game-square" id="square20"
             data-x="2300" data-y="2070"
             data-size="80, 80" 
@@ -407,7 +408,7 @@
             data-button-off-idle1="Assets/Music/WebsiteMusicSkip.png"
             data-button-on-idle1="Assets/Music/WebsiteMusicSkip.png">
           </div>
-
+           <!-- NPC 20 — JUKEBOX -->
           <div class="game-square" id="square21"
           data-size="100,100"
           data-x="2250" data-y="1930"
@@ -421,7 +422,7 @@
           data-button-off-idle2="Assets/Music/WebsiteJukeboxOn2.png"
           data-button-on-idle1="Assets/Music/WebsiteJukeboxOff.png">
         </div>
-
+         <!-- NPC 21 — Painting 1 -->
         <div class="game-square" id="square22"
           data-x="3650" data-y="206"
           data-size="110, 110"
@@ -434,7 +435,7 @@
           data-dialogue-mode="sequence"
           data-dialogue="- Low Bit Ghost : 2026">
       </div>
-
+      <!-- NPC 22 — Painting 2 -->
        <div class="game-square" id="square23"
           data-x="3910" data-y="190"
           data-size="100, 100"

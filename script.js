@@ -865,8 +865,8 @@ function randInt(min, max) {
 
 function randomPointInCoopArea(rect) {
     return {
-        x: randInt(rect.x, rect.x + Math.max(1, rect.width - 1)),
-        y: randInt(rect.y, rect.y + Math.max(1, rect.height - 1))
+        x: Math.round(rect.x + rect.width / 2),
+        y: Math.round(rect.y + rect.height / 2)
     };
 }
 
@@ -1379,6 +1379,7 @@ function setMovementReduction(value) {
     syncArenaSizeForViewport();
     applyMovementReductionVisualState();
     applyMovementReductionNpcState();
+    forceCenterCameraNextFrame = true;
 }
 
 function setIsNight(value) {
@@ -1870,18 +1871,41 @@ function updateSquares(dt) {
                 const maxTop  = Math.max(0, arena.clientHeight - elH);
                 let nx = s.x + s.dirX * s.speed * dt;
                 let ny = s.y + s.dirY * s.speed * dt;
-                if (nx < 0)       { nx = 0;       s.dirX *= -1; }
-                if (ny < 0)       { ny = 0;       s.dirY *= -1; }
-                if (nx > maxLeft) { nx = maxLeft; s.dirX *= -1; }
-                if (ny > maxTop)  { ny = maxTop;  s.dirY *= -1; }
+                let touchedBoundary = false;
+                if (nx < 0) {
+                    nx = 0;
+                    touchedBoundary = true;
+                }
+                if (ny < 0) {
+                    ny = 0;
+                    touchedBoundary = true;
+                }
+                if (nx > maxLeft) {
+                    nx = maxLeft;
+                    touchedBoundary = true;
+                }
+                if (ny > maxTop) {
+                    ny = maxTop;
+                    touchedBoundary = true;
+                }
 
 
                 const npcFeetX = nx + (el.offsetWidth  || 0) / 2;
                 const npcFeetY = ny + (el.offsetHeight || 0);
-                if (s.canClipWalls || !isBlockedAt(npcFeetX, npcFeetY)) {
+                const touchedWall = !s.canClipWalls && isBlockedAt(npcFeetX, npcFeetY);
+
+                if (!touchedBoundary && !touchedWall) {
                     s.x = nx; s.y = ny;
                 } else {
-                    s.dirX *= -1; s.dirY *= -1;  // bounce off wall
+                    // Stop briefly on wall/edge hit, then let wander logic pick a new random heading.
+                    s.state = 'idle';
+                    s.dirX = 0;
+                    s.dirY = 0;
+                    s.timerMs = randRange(220, 480);
+                    s.frames = s.framesIdle;
+                    s.frameIndex = 0;
+                    s.frameElapsedMs = 0;
+                    if (s.img && s.frames?.length) s.img.src = s.frames[0];
                 }
                 el.style.left = `${Math.round(s.x)}px`;
                 el.style.top  = `${Math.round(s.y)}px`;
