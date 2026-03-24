@@ -822,8 +822,25 @@ function isPointInsideRect(x, y, rect) {
 }
 
 function clampChickenPair(inCoop, outOfCoop) {
-    const safeInCoop = roundChickenCount(inCoop, 0);
-    const safeOutOfCoop = roundChickenCount(outOfCoop, CHICKEN_TOTAL_DEFAULT);
+    const maxTotal = CHICKEN_TOTAL_DEFAULT;
+    let safeInCoop = roundChickenCount(inCoop, 0);
+    let safeOutOfCoop = roundChickenCount(outOfCoop, maxTotal);
+
+    safeInCoop = Math.max(0, Math.min(maxTotal, safeInCoop));
+    safeOutOfCoop = Math.max(0, Math.min(maxTotal, safeOutOfCoop));
+
+    const total = safeInCoop + safeOutOfCoop;
+
+    // Self-heal invalid/empty saved states so chickens cannot fully disappear.
+    if (total <= 0) {
+        return { inCoop: 0, outOfCoop: maxTotal };
+    }
+
+    // Keep flock size stable at the configured total.
+    if (total !== maxTotal) {
+        safeOutOfCoop = Math.max(0, maxTotal - safeInCoop);
+    }
+
     return { inCoop: safeInCoop, outOfCoop: safeOutOfCoop };
 }
 
@@ -933,6 +950,8 @@ window.ChickensInCoop = 0;
 window.ChickensOutofCoop = CHICKEN_TOTAL_DEFAULT;
 window.CoopArea = { ...DEFAULT_COOP_AREA };
 rebuildCoopChickenElements();
+
+let ChickenQuestCompleted = false;
 
 const squareEls    = Array.from(document.querySelectorAll('.game-square'));
 const squareStates = {};    // keyed by element id
@@ -1137,6 +1156,9 @@ for (const el of squareEls) {
 
     // Dialogue lines are separated by || in the attribute
     const diagLines = parseDialogueLines(el.dataset.dialogue);
+    const conditionalDiagRaw = (el.dataset.conditionalDialogue || '').trim();
+    const conditionalEntries = conditionalDiagRaw ? parseConditionalDialogue(conditionalDiagRaw) : [];
+    const numberedConditionalEntries = parseNumberedConditionalDialogues(el);
 
     // ── Build dialogueConfig entry ──────────────────────────────────────────
     dialogueConfig[id] = {
@@ -1144,7 +1166,9 @@ for (const el of squareEls) {
         mode:        diagMode,
         counter:     0,
         randomRange: [0, Math.max(1, diagLines.length - 1)],
-        textBoxType
+        textBoxType,
+        conditionalEntries,
+        numberedConditionalEntries
     };
 
     // ── Build or reuse the NPC sprite <img> ────────────────────────────────
@@ -1249,12 +1273,181 @@ for (const el of squareEls) {
 }
 
 // ---------------------------------------------------------------------------
+//  Dialogue — conditional dialogue system
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse all numbered conditional dialogues from element data attributes.
+ * Looks for data-conditional-dialogue-1, data-conditional-dialogue-2, etc.
+ * Format: "condition | line1 || line2 || line3"
+ * Returns: [ { condition: "cond", lines: ["line1", "line2"], counter: 0 }, ... ]
+ */
+function parseNumberedConditionalDialogues(el) {
+    const entries = [];
+    let index = 1;
+    
+    while (true) {
+        // Read the raw attribute directly because numbered data-* attributes
+        // do not map to dataset.camelCase keys consistently across browsers.
+        const rawText = el.getAttribute(`data-conditional-dialogue-${index}`);
+        
+        if (!rawText) break;
+        
+        const pipeIdx = rawText.indexOf('|');
+        if (pipeIdx === -1) {
+            index++;
+            continue;
+        }
+        
+        const condition = rawText.slice(0, pipeIdx).trim();
+        const dialogueText = rawText.slice(pipeIdx + 1).trim();
+        
+        if (condition && dialogueText) {
+            const lines = parseDialogueLines(dialogueText);
+            if (lines.length > 0) {
+                entries.push({
+                    condition,
+                    lines,
+                    counter: 0
+                });
+            }
+        }
+        
+        index++;
+    }
+    
+    return entries;
+}
+
+/**
+ * Parse conditional dialogue format: "cond1 | response1 || cond2 | response2 || default"
+ * Returns: [ { condition: "cond1", response: "response1" }, ... ]
+ * Last entry may have condition === null to represent default.
+ */
+function parseConditionalDialogue(rawText) {
+    if (!rawText || typeof rawText !== 'string') return [];
+    
+    const entries = [];
+    const segments = rawText.split('||').map(s => s.trim()).filter(Boolean);
+    
+    for (const segment of segments) {
+        const pipeIdx = segment.indexOf('|');
+        if (pipeIdx === -1) {
+            // No pipe = default response
+            entries.push({ condition: null, response: segment });
+        } else {
+            const condition = segment.slice(0, pipeIdx).trim();
+            const response = segment.slice(pipeIdx + 1).trim();
+            if (condition && response) {
+                entries.push({ condition, response });
+            }
+        }
+    }
+    
+    return entries;
+}
+
+/**
+ * Safely evaluate a condition string against window variables.
+ * Supports: variable names, comparisons (==, ===, !=, !==, <, >, <=, >=), 
+ * boolean operators (&&, ||), and negation (!).
+ */
+function evaluateCondition(conditionStr) {
+    if (!conditionStr || typeof conditionStr !== 'string') return false;
+    
+    try {
+        // Replace variable references with window.variable values
+        let expr = conditionStr.trim();
+        
+        // Match identifiers (e.g., ChickensInCoop, isNight, etc.)
+        expr = expr.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g, (match) => {
+            // If it's a keyword or operator, leave it alone
+            if (['true', 'false', 'null', 'undefined', 'and', 'or', 'not'].includes(match.toLowerCase())) {
+                return match;
+            }
+            // Otherwise, get from window
+            const val = window[match];
+            if (val === undefined || val === null) {
+                return 'undefined';
+            } else if (typeof val === 'string') {
+                return `"${val.replace(/"/g, '\\"')}"`;
+            } else {
+                return String(val);
+            }
+        });
+        
+        // Allow common comparisons and boolean logic, reject function calls
+        if (/[\(\)\[\]{}]|\.|\+|-|\:|;|,/.test(expr) && !/[<>=!&|]|true|false/.test(expr)) {
+            return false;
+        }
+        
+        // Evaluate the expression
+        return Boolean(eval(expr));
+    } catch (err) {
+        console.warn('Condition evaluation error:', conditionStr, err);
+        return false;
+    }
+}
+
+/**
+ * Get dialogue response by finding first matching condition.
+ * Returns null if no match.
+ */
+function getMatchingConditionalDialogue(conditionalEntries) {
+    for (const entry of conditionalEntries) {
+        if (entry.condition === null) {
+            // Default entry
+            continue;
+        }
+        if (evaluateCondition(entry.condition)) {
+            return entry.response;
+        }
+    }
+    
+    // Fall back to default if present
+    for (const entry of conditionalEntries) {
+        if (entry.condition === null) {
+            return entry.response;
+        }
+    }
+    
+    return null;
+}
+
+// ---------------------------------------------------------------------------
 //  Dialogue — get next line for a given NPC id
 // ---------------------------------------------------------------------------
 
 function getNextDialogueText(id) {
     const cfg = dialogueConfig[id];
-    if (!cfg || !cfg.texts.length) return `You interacted with ${id}.`;
+    if (!cfg) return `You interacted with ${id}.`;
+    
+    // Check numbered conditionals first (e.g., data-conditional-dialogue-1, data-conditional-dialogue-2)
+    if (cfg.numberedConditionalEntries && cfg.numberedConditionalEntries.length > 0) {
+        for (const entry of cfg.numberedConditionalEntries) {
+            if (evaluateCondition(entry.condition)) {
+                // Found matching condition — use its dialogue sequence
+                const mode = cfg.mode; // Use the NPC's dialogue-mode for sequence/random
+                if (mode === 'random') {
+                    return entry.lines[Math.floor(Math.random() * entry.lines.length)];
+                } else {
+                    // sequence mode
+                    const idx = Math.floor(entry.counter) % entry.lines.length;
+                    entry.counter += 1;
+                    return entry.lines[idx];
+                }
+            }
+        }
+    }
+    
+    // Check for conditional dialogue (single-response conditions)
+    if (cfg.conditionalEntries && cfg.conditionalEntries.length > 0) {
+        const matched = getMatchingConditionalDialogue(cfg.conditionalEntries);
+        if (matched) return matched;
+    }
+    
+    // Fall back to standard dialogue
+    if (!cfg.texts || !cfg.texts.length) return `You interacted with ${id}.`;
 
     if (cfg.mode === 'random') {
         return cfg.texts[Math.floor(Math.random() * cfg.texts.length)];
@@ -1264,6 +1457,19 @@ function getNextDialogueText(id) {
         cfg.counter += 1;
         return cfg.texts[idx];
     }
+}
+
+function interpolateDialogueVariables(text) {
+    const source = String(text ?? '');
+
+    // Only replace plain variable placeholders like {ChickensInCoop}
+    // or {gameState.score}. Leave token syntax like {size_change:40}
+    // and {img:path|120} untouched.
+    return source.replace(/\{([a-zA-Z_$][a-zA-Z0-9_$]*(?:\.[a-zA-Z_$][a-zA-Z0-9_$]*)*)\}/g, (_m, path) => {
+        const value = getWindowPathValue(path);
+        if (value == null) return '';
+        return String(value);
+    });
 }
 
 // Public console helpers
@@ -1410,14 +1616,55 @@ function refreshChickenCoopCounts(force = false) {
         if (isPointInsideRect(centerX, centerY, coopArea)) inCoop += 1;
     }
 
+    // Avoid wiping saved state during transient frames where no coop chickens
+    // are registered yet (or if another page reuses this script without them).
+    if (tracked <= 0) return;
+
     const outOfCoop = Math.max(0, tracked - inCoop);
     if (!force && window.ChickensInCoop === inCoop && window.ChickensOutofCoop === outOfCoop) return;
     setChickenProgress(inCoop, outOfCoop, true);
 }
 
+function resetChickenFlock() {
+    const coopArea = getConfiguredCoopArea();
+    const coopChickens = Object.values(squareStates).filter(s => s?.isCoopChicken);
+
+    // If runtime chicken state is missing, persist reset values and rebuild via reload.
+    if (!coopChickens.length || coopChickens.length !== CHICKEN_TOTAL_DEFAULT) {
+        setChickenProgress(0, CHICKEN_TOTAL_DEFAULT, true);
+        ChickenQuestCompleted = false;
+        window.location.reload();
+        return;
+    }
+
+    // Reset counters first, then respawn all tracked coop chickens outside the coop.
+    setChickenProgress(0, CHICKEN_TOTAL_DEFAULT, true);
+    ChickenQuestCompleted = false;
+
+    for (const s of coopChickens) {
+        const p = randomPointOutsideCoopArea(coopArea);
+        s.x = p.x;
+        s.y = p.y;
+        s.dirX = 0;
+        s.dirY = 0;
+        s.state = 'idle';
+        s.timerMs = randRange(300, 900);
+        s.interactedPaused = false;
+        s.el.style.left = `${Math.round(s.x)}px`;
+        s.el.style.top = `${Math.round(s.y)}px`;
+        if (s.el?.dataset) {
+            s.el.dataset.x = String(Math.round(s.x));
+            s.el.dataset.y = String(Math.round(s.y));
+        }
+    }
+
+    refreshChickenCoopCounts(true);
+}
+
 window.setIsNight = setIsNight;
 window.setMovementReduction = setMovementReduction;
 window.skipMusicTrack = requestMusicSkip;
+window.resetChickenFlock = resetChickenFlock;
 
 try {
     Object.defineProperty(window, 'isNight', {
@@ -1469,6 +1716,15 @@ try {
     window.musicVolume = musicVolume;
 }
 
+try {
+    Object.defineProperty(window, 'ChickenQuestCompleted', {
+        configurable: true,
+        get() { return ChickenQuestCompleted; },
+        set(value) { ChickenQuestCompleted = Boolean(value); }
+    });
+} catch (_err) {
+    window.ChickenQuestCompleted = ChickenQuestCompleted;
+}
 
 
 
@@ -1640,7 +1896,8 @@ function showDialogueForSquare(squareEl) {
     document.addEventListener('pointerdown', closeDialogueOnClickOutside, true);
 
     const rawText = getNextDialogueText(id);
-    renderDialogueContent(rawText);
+    const renderedText = interpolateDialogueVariables(rawText);
+    renderDialogueContent(renderedText);
 
     const cfg = dialogueConfig[id];
     const textBoxType = cfg?.textBoxType === 'try' ? 'try' : 'default';
@@ -2000,6 +2257,11 @@ document.addEventListener('keydown', (e) => {
         case 'N':
             e.preventDefault();
             requestMusicSkip();
+            break;
+        case 'r':
+        case 'R':
+            e.preventDefault();
+            resetChickenFlock();
             break;
         case 'Shift':      sprintHeld = true;  break;
         case 'ArrowLeft':  pressed.left  = true; lastDirection = 'left';  e.preventDefault(); break;

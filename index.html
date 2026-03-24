@@ -222,8 +222,12 @@
             data-walk-2="Assets/WebsiteNPC1Walk2.png"
             data-can-move="false"
             data-dialogue-mode="sequence"
-            data-dialogue="{size_change:40}Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya.">
-        </div>
+            data-dialogue="{size_change:40}Hello website user, /n I am the guide. || This website has been designed to showcase /n various design works. || If you go down you can exit my /n house and explore the world. || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing. || Oh also while your out, would you mind gathering my chickens. /n They seem to have broken free. || Just dragging them to their pen should do. ||Ok, see ya."
+            data-conditional-dialogue-1="ChickensInCoop >= 5 && ChickensInCoop <= 10 && !ChickenQuestCompleted| Hey good job collecting those chickens.|| You already gotten {ChickensInCoop} of them. /n You've only got a couple more || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing."
+            data-conditional-dialogue-2="ChickensInCoop >= 10 && ChickensInCoop <= 15 && !ChickenQuestCompleted| Wow! /n You're almost their! || You've already got {ChickensInCoop} out of 15 chickens!. /n Keep it up! || Oh, you want directions? || Well to the west is the ominous unused building, /n east has the project halls were all /n past projects live, /n South has the beach, and /n North has nothing."
+            data-conditional-dialogue-3="ChickensInCoop == 15 && ChickenQuestCompleted| You did it!/n You collected all the chickens! || Thank god, I was worried they were going to eat my seeds. || Oh right the reward... /n /n uhm... || I know! /n [Guide gave player Chicken Shaped Trophy] || There you go, /n you've officially beaten the main quest! || Oh you want to see the trophy? /n uhhhh... /n you already are seeing it. /n It's just... || Small. || Okay Bye! || [You'll be able to get a real award later in development]"
+            >
+          </div>
         <!-- NPC 6 — The Mobile Chicken -->
         <div class="game-square" id="square7"
           data-x="3920" data-y="3390"
